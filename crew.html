@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Schedule - Crew Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- Mobile Menu Toggle -->
+<button class="mobile-menu-toggle">
+    <span></span>
+    <span></span>
+    <span></span>
+</button>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/jollibee-logo.png" alt="Jollibee" class="sidebar-logo">
+        <h2>Crew Panel</h2>
+        <p class="sidebar-subtitle">EDSA Kamias Branch</p>
+    </div>
+    <a href="#" onclick="showSection('personal')">📅 My Schedule</a>
+    <a href="#" onclick="showSection('global')">👥 Full Team Schedule</a> 
+    <a href="#" onclick="showSection('request')">📝 Request Time Off</a>
+    <a href="password.html">🔒 Reset Password</a>
+    <hr>
+    <a href="#" onclick="logout()" style="color: #FFC700;">🚪 Logout</a>
+</div>
+
+<!-- Overlay for mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<div class="main">
+    <div id="personalSection">
+        <div id="personalSchedule"></div>
+    </div>
+
+    <div id="globalSection" style="display:none;">
+        <div class="card">
+            <h1>Full Team Schedule</h1>
+            <div id="globalScheduleContainer"></div>
+        </div>
+    </div>
+
+    <div id="requestSection" style="display:none;">
+        <div class="card">
+            <h2>📝 Request Time Off</h2>
+            <p>Select a date you are unavailable to work and provide a reason.</p>
+            
+            <div style="margin-top: 20px;">
+                <label for="offDate" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                    Select Date:
+                </label>
+                <input type="date" id="offDate" style="width: 100%; margin-bottom: 15px;">
+                
+                <label for="offReason" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                    Reason:
+                </label>
+                <textarea id="offReason" 
+                    placeholder="Please provide a reason for your time off request (e.g., Medical appointment, Family emergency, Personal matter)" 
+                    style="width: 100%; min-height: 100px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; font-family: inherit; resize: vertical;"
+                    maxlength="500"></textarea>
+                <div style="text-align: right; color: #666; font-size: 12px; margin-top: 5px;">
+                    <span id="reasonCharCount">0</span>/500 characters
+                </div>
+                
+                <button onclick="requestOff()" style="width: 100%; margin-top: 15px;">
+                    Send Request
+                </button>
+            </div>
+
+            <div id="myRequestStatus" style="margin-top: 30px;">
+                <h3 style="margin-bottom: 15px;">My Request History</h3>
+                <div id="requestHistory">Loading requests...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="js/crew.js"></script>
+<script>
+    function toggleSidebar(event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+    }
+    
+    // Prevent sidebar from auto-opening on mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only the hamburger button should open the sidebar
+        const menuToggle = document.querySelector('.mobile-menu-toggle');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                toggleSidebar();
+            });
+        }
+        
+        // Clicking overlay closes sidebar
+        const overlay = document.getElementById('sidebarOverlay');
+        if (overlay) {
+            overlay.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const sidebar = document.getElementById('sidebar');
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            });
+        }
+        
+        // Prevent any other clicks from affecting sidebar
+        document.addEventListener('click', function(e) {
+            const sidebar = document.getElementById('sidebar');
+            const menuToggle = document.querySelector('.mobile-menu-toggle');
+            
+            // If click is not on sidebar or menu toggle, and sidebar is open, close it
+            if (sidebar && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
+                    sidebar.classList.remove('active');
+                    document.getElementById('sidebarOverlay').classList.remove('active');
+                }
+            }
+        }, true);
+        
+        // Character counter for reason textarea
+        const reasonTextarea = document.getElementById('offReason');
+        const charCount = document.getElementById('reasonCharCount');
+        if (reasonTextarea && charCount) {
+            reasonTextarea.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

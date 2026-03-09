@@ -1,0 +1,1604 @@
+/* ========================================
+   JOLLIBEE CREW SCHEDULING SYSTEM
+   Theme: Jollibee Red & Yellow
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+    min-height: 100vh;
+}
+
+/* ========================================
+   SIDEBAR - Jollibee Theme
+   ======================================== */
+.sidebar {
+    width: 280px;
+    height: 100vh;
+    background: linear-gradient(180deg, #DC0000 0%, #B00000 100%);
+    color: white;
+    position: fixed;
+    padding: 0;
+    box-shadow: 4px 0 20px rgba(220, 0, 0, 0.3);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar-header {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 25px 20px;
+    text-align: center;
+    border-bottom: 3px solid #FFC700;
+}
+
+.sidebar-logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 15px;
+    animation: float 3s ease-in-out infinite;
+}
+
+.sidebar h2 {
+    font-size: 20px;
+    margin: 10px 0 5px 0;
+    font-weight: 700;
+    color: #FFC700;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar-subtitle {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 400;
+}
+
+.sidebar a {
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+    margin: 8px 15px;
+    font-size: 15px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.sidebar a:hover {
+    background: rgba(255, 199, 0, 0.2);
+    transform: translateX(8px);
+    box-shadow: 0 4px 12px rgba(255, 199, 0, 0.3);
+}
+
+.sidebar a:active {
+    transform: translateX(8px) scale(0.98);
+}
+
+.sidebar hr {
+    border: none;
+    border-top: 2px solid rgba(255, 199, 0, 0.3);
+    margin: 20px 15px;
+}
+
+/* ========================================
+   MAIN CONTENT AREA
+   ======================================== */
+.main {
+    margin-left: 280px;
+    padding: 30px;
+    min-height: 100vh;
+}
+
+/* ========================================
+   CARDS - Jollibee Style
+   ======================================== */
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 25px;
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.card h1 {
+    color: #DC0000;
+    font-size: 32px;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.card h2 {
+    color: #DC0000;
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.card p {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* ========================================
+   BUTTONS - Jollibee Style
+   ======================================== */
+button {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(220, 0, 0, 0.2);
+}
+
+button:hover {
+    background: linear-gradient(135deg, #FF0000 0%, #DC0000 100%);
+    box-shadow: 0 3px 10px rgba(220, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(220, 0, 0, 0.2);
+}
+
+button[style*="background: #28a745"],
+button[style*="background:#28a745"] {
+    background: linear-gradient(135deg, #FFC700 0%, #FFB000 100%) !important;
+    color: #333 !important;
+    box-shadow: 0 2px 6px rgba(255, 199, 0, 0.2);
+}
+
+button[style*="background: #28a745"]:hover,
+button[style*="background:#28a745"]:hover {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%) !important;
+    box-shadow: 0 3px 10px rgba(255, 199, 0, 0.3);
+}
+
+/* ========================================
+   INPUTS & FORMS
+   ======================================== */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+select,
+textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #FFC700;
+    box-shadow: 0 0 0 4px rgba(255, 199, 0, 0.2);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+/* Tablets (768px - 1024px) */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 240px;
+    }
+    
+    .main {
+        margin-left: 240px;
+        padding: 20px;
+    }
+    
+    .card {
+        padding: 20px;
+    }
+    
+    .card h1 {
+        font-size: 28px;
+    }
+}
+
+/* Mobile Landscape & Small Tablets (481px - 767px) */
+@media (max-width: 767px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        box-shadow: 0 4px 12px rgba(220, 0, 0, 0.2);
+    }
+    
+    .sidebar-logo {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .sidebar h2 {
+        font-size: 18px;
+    }
+    
+    .sidebar a {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+    
+    .main {
+        margin-left: 0;
+        padding: 15px;
+    }
+    
+    .card {
+        padding: 20px;
+        border-radius: 15px;
+    }
+    
+    .card h1 {
+        font-size: 24px;
+    }
+    
+    .card h2 {
+        font-size: 20px;
+    }
+    
+    button {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+}
+
+/* Mobile Portrait (320px - 480px) */
+@media (max-width: 480px) {
+    .sidebar-header {
+        padding: 20px 15px;
+    }
+    
+    .sidebar-logo {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .sidebar h2 {
+        font-size: 16px;
+    }
+    
+    .sidebar a {
+        padding: 10px 12px;
+        font-size: 13px;
+        margin: 6px 10px;
+    }
+    
+    .main {
+        padding: 10px;
+    }
+    
+    .card {
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
+    
+    .card h1 {
+        font-size: 22px;
+    }
+    
+    .card h2 {
+        font-size: 18px;
+    }
+    
+    button {
+        padding: 10px 18px;
+        font-size: 14px;
+    }
+    
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="time"],
+    select {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+}
+
+/* Large Screens (1920px+) */
+@media (min-width: 1920px) {
+    .sidebar {
+        width: 320px;
+    }
+    
+    .main {
+        margin-left: 320px;
+        padding: 40px;
+        max-width: 1600px;
+    }
+    
+    .card {
+        padding: 40px;
+    }
+    
+    .card h1 {
+        font-size: 36px;
+    }
+}
+
+
+/* ========================================
+   MODALS - Jollibee Theme
+   ======================================== */
+#crewModal,
+#addCrewModal,
+#scheduleModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+#crewModal > div,
+#addCrewModal > div,
+#scheduleModal > div {
+    background: white;
+    border-radius: 20px;
+    padding: 35px;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(220, 0, 0, 0.3);
+    animation: modalSlideUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    border: 3px solid #FFC700;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Modal Headers */
+#crewModal h2,
+#addCrewModal h2,
+#scheduleModal h2 {
+    color: #DC0000;
+    font-size: 28px;
+    margin: 0 0 20px 0;
+    font-weight: 700;
+    border-bottom: 3px solid #FFC700;
+    padding-bottom: 15px;
+}
+
+#crewModal h3,
+#addCrewModal h3 {
+    color: #DC0000;
+    font-size: 20px;
+    margin: 25px 0 15px 0;
+    font-weight: 600;
+}
+
+#crewModal h4,
+#addCrewModal h4 {
+    color: #DC0000;
+    font-size: 18px;
+    margin: 15px 0 10px 0;
+    font-weight: 600;
+}
+
+/* Modal Labels */
+#crewModal label,
+#addCrewModal label {
+    font-weight: 600;
+    color: #333;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Modal Inputs */
+#crewModal input,
+#crewModal select,
+#addCrewModal input,
+#addCrewModal select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+}
+
+#crewModal input:focus,
+#crewModal select:focus,
+#addCrewModal input:focus,
+#addCrewModal select:focus {
+    border-color: #FFC700;
+    box-shadow: 0 0 0 4px rgba(255, 199, 0, 0.2);
+}
+
+/* Modal Buttons */
+#crewModal button,
+#addCrewModal button {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(220, 0, 0, 0.3);
+    margin-right: 10px;
+}
+
+#crewModal button:hover,
+#addCrewModal button:hover {
+    background: linear-gradient(135deg, #FF0000 0%, #DC0000 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 0, 0, 0.4);
+}
+
+/* Delete Button */
+button[onclick*="deleteCrewMember"] {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%) !important;
+}
+
+/* Close Button */
+button[onclick*="close"] {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+}
+
+/* Login Credentials Box */
+#crewModal > div > div[style*="background: #f8f9fa"],
+#addCrewModal > div > div[style*="background: #f8f9fa"] {
+    background: linear-gradient(135deg, #fff9e6 0%, #fff3cc 100%) !important;
+    border: 2px solid #FFC700 !important;
+    border-radius: 15px !important;
+    padding: 20px !important;
+}
+
+/* Station Assignment Boxes */
+#crewModal > div > div[style*="background: #fff8e1"] {
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%) !important;
+    border: 2px solid #FFC700 !important;
+    border-radius: 15px !important;
+    padding: 20px !important;
+}
+
+/* Station Selection Boxes */
+div[id^="top-"],
+div[id^="sec-"] {
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+}
+
+div[id^="top-"]:hover,
+div[id^="sec-"]:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 12px rgba(220, 0, 0, 0.3) !important;
+}
+
+/* Weekly Schedule Day Boxes */
+#crewModal > div > div[style*="margin-bottom:8px"] {
+    background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%) !important;
+    border: 2px solid #e0e0e0 !important;
+    border-radius: 10px !important;
+    transition: all 0.3s ease;
+}
+
+#crewModal > div > div[style*="margin-bottom:8px"]:hover {
+    border-color: #FFC700 !important;
+    box-shadow: 0 2px 8px rgba(255, 199, 0, 0.2) !important;
+}
+
+/* ========================================
+   CREW PROFILE CARDS
+   ======================================== */
+div[onclick*="openCrewModal"] {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+/* Hidden crew card for search filtering */
+div[onclick*="openCrewModal"].hidden-crew-card {
+    display: none !important;
+}
+
+div[onclick*="openCrewModal"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border-color: #FFC700 !important;
+}
+
+div[onclick*="openCrewModal"] h3 {
+    color: #DC0000 !important;
+    font-weight: 700 !important;
+}
+
+div[onclick*="openCrewModal"] p[style*="color: #007bff"] {
+    color: #FFC700 !important;
+    font-weight: 600 !important;
+}
+
+/* ========================================
+   SEARCH BAR
+   ======================================== */
+#crewSearchInput {
+    width: 100% !important;
+    padding: 14px 20px !important;
+    font-size: 16px !important;
+    border: 2px solid #e0e0e0 !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+    background: white !important;
+}
+
+#crewSearchInput:focus {
+    border-color: #FFC700 !important;
+    box-shadow: 0 0 0 3px rgba(255, 199, 0, 0.15) !important;
+    outline: none !important;
+}
+
+/* Search Result Message */
+#searchResultMessage {
+    padding: 15px 20px !important;
+    margin: 15px 20px !important;
+    background: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsive for crew profiles */
+@media screen and (max-width: 767px) {
+    /* Remove sticky positioning */
+    .card:first-child {
+        position: relative !important;
+        background: white !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .card:first-child h1 {
+        font-size: 20px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .card:first-child p {
+        font-size: 13px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    .card:first-child > div {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .card:first-child button {
+        width: 100% !important;
+        padding: 10px !important;
+        font-size: 13px !important;
+    }
+    
+    #crewSearchInput {
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+    }
+    
+    /* Center profile cards */
+    #crewProfileDetails {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        padding: 10px !important;
+    }
+    
+    #crewProfileDetails > div {
+        width: 100% !important;
+        max-width: 400px !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    div[onclick*="openCrewModal"] {
+        padding: 18px !important;
+        width: 100% !important;
+    }
+    
+    div[onclick*="openCrewModal"] h3 {
+        font-size: 18px !important;
+    }
+    
+    div[onclick*="openCrewModal"] p {
+        font-size: 13px !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .card:first-child {
+        padding: 12px !important;
+    }
+    
+    .card:first-child h1 {
+        font-size: 18px !important;
+    }
+    
+    #crewSearchInput {
+        padding: 10px 14px !important;
+        font-size: 13px !important;
+    }
+    
+    div[onclick*="openCrewModal"] {
+        padding: 15px !important;
+    }
+    
+    div[onclick*="openCrewModal"] h3 {
+        font-size: 16px !important;
+    }
+    
+    div[onclick*="openCrewModal"] p {
+        font-size: 12px !important;
+    }
+}
+
+/* Tablet responsive */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    #crewProfileDetails > div {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 20px !important;
+    }
+}
+
+
+/* ========================================
+   SCHEDULE TABLE STYLING
+   ======================================== */
+table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    background: white !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+table th {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 12px !important;
+    text-align: left !important;
+}
+
+table td {
+    border: 1px solid #e0e0e0 !important;
+    padding: 10px !important;
+}
+
+table tr:hover {
+    background: rgba(255, 199, 0, 0.1) !important;
+}
+
+/* ========================================
+   WARNING BANNER (Double Booking)
+   ======================================== */
+div[id^="warning-banner-"] {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%) !important;
+    border: 4px solid #ff9800 !important;
+    border-radius: 20px !important;
+    padding: 30px 35px !important;
+    box-shadow: 0 20px 60px rgba(255, 152, 0, 0.5) !important;
+    z-index: 99999 !important;
+    animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+}
+
+/* ========================================
+   EXISTING SCHEDULES LIST
+   ======================================== */
+#existingSchedulesList > div {
+    background: white !important;
+    border: 2px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+    margin-bottom: 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+#existingSchedulesList > div:hover {
+    border-color: #FFC700 !important;
+    box-shadow: 0 4px 12px rgba(255, 199, 0, 0.3) !important;
+    transform: translateX(5px) !important;
+}
+
+/* ========================================
+   HISTORY PAGE CARDS
+   ======================================== */
+#historyList > div {
+    background: white !important;
+    border: 2px solid #e0e0e0 !important;
+    border-radius: 15px !important;
+    padding: 20px !important;
+    margin-bottom: 15px !important;
+    transition: all 0.3s ease !important;
+}
+
+#historyList > div:hover {
+    border-color: #FFC700 !important;
+    box-shadow: 0 6px 16px rgba(220, 0, 0, 0.15) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* ========================================
+   RESPONSIVE MODAL ADJUSTMENTS
+   ======================================== */
+@media (max-width: 767px) {
+    #crewModal > div,
+    #addCrewModal > div,
+    #scheduleModal > div {
+        padding: 20px;
+        max-width: 95%;
+        border-radius: 15px;
+    }
+    
+    #crewModal h2,
+    #addCrewModal h2 {
+        font-size: 22px;
+    }
+    
+    #crewModal button,
+    #addCrewModal button {
+        width: 100%;
+        margin-bottom: 10px;
+        margin-right: 0;
+    }
+    
+    div[id^="warning-banner-"] {
+        max-width: 90% !important;
+        padding: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #crewModal > div,
+    #addCrewModal > div {
+        padding: 15px;
+        max-width: 98%;
+    }
+    
+    #crewModal h2,
+    #addCrewModal h2 {
+        font-size: 20px;
+    }
+    
+    div[onclick*="openCrewModal"] {
+        padding: 15px !important;
+    }
+}
+
+/* ========================================
+   PRINT BUTTON STYLING
+   ======================================== */
+.print-button {
+    background: linear-gradient(135deg, #FFC700 0%, #FFB000 100%) !important;
+    color: #333 !important;
+    box-shadow: 0 4px 12px rgba(255, 199, 0, 0.4) !important;
+}
+
+.print-button:hover {
+    background: linear-gradient(135deg, #FFD700 0%, #FFC700 100%) !important;
+    box-shadow: 0 6px 20px rgba(255, 199, 0, 0.5) !important;
+}
+
+/* ========================================
+   SCROLLBAR STYLING
+   ======================================== */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #FF0000 0%, #DC0000 100%);
+}
+
+/* ========================================
+   LOADING STATES
+   ======================================== */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(220, 0, 0, 0.3);
+    border-radius: 50%;
+    border-top-color: #DC0000;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* ========================================
+   MOBILE HAMBURGER MENU
+   ======================================== */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 10001;
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+    border: none;
+    border-radius: 10px;
+    width: 50px;
+    height: 50px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(220, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+.mobile-menu-toggle span {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background: white;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.mobile-menu-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(220, 0, 0, 0.5);
+}
+
+.mobile-menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Sidebar Overlay for Mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ========================================
+   MOBILE RESPONSIVE SIDEBAR
+   ======================================== */
+@media (max-width: 767px) {
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 280px;
+        height: 100vh;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: none;
+    }
+    
+    .sidebar.active {
+        left: 0;
+        box-shadow: 4px 0 20px rgba(220, 0, 0, 0.3);
+    }
+    
+    .sidebar-overlay {
+        display: block;
+    }
+    
+    .main {
+        margin-left: 0;
+        padding: 80px 15px 15px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-menu-toggle {
+        width: 45px;
+        height: 45px;
+        top: 15px;
+        left: 15px;
+    }
+    
+    .mobile-menu-toggle span {
+        width: 22px;
+    }
+    
+    .sidebar {
+        width: 260px;
+    }
+    
+    .main {
+        padding: 70px 10px 10px 10px;
+    }
+}
+
+/* ========================================
+   CREW SCHEDULE CARDS STYLING
+   ======================================== */
+#personalSchedule > div {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(220, 0, 0, 0.1);
+    border-left: 5px solid #DC0000;
+    transition: all 0.3s ease;
+    animation: slideUp 0.5s ease-out;
+}
+
+#personalSchedule > div:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(220, 0, 0, 0.15);
+    border-left-color: #FFC700;
+}
+
+#personalSchedule h2 {
+    color: #DC0000;
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+#personalSchedule h3 {
+    color: #DC0000;
+    font-size: 20px;
+    margin: 15px 0 10px 0;
+    font-weight: 600;
+}
+
+#personalSchedule p {
+    color: #666;
+    line-height: 1.8;
+    margin: 8px 0;
+}
+
+#personalSchedule strong {
+    color: #DC0000;
+    font-weight: 600;
+}
+
+/* Request History Styling */
+#requestHistory > div {
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+#requestHistory > div:hover {
+    border-color: #FFC700;
+    box-shadow: 0 2px 8px rgba(255, 199, 0, 0.2);
+}
+
+/* ========================================
+   WELCOME MESSAGE STYLING
+   ======================================== */
+#personalSchedule > div:first-child {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+    color: white;
+    border-left: none;
+}
+
+#personalSchedule > div:first-child h2 {
+    color: #FFC700;
+}
+
+#personalSchedule > div:first-child p {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* ========================================
+   NO SCHEDULE MESSAGE
+   ======================================== */
+#personalSchedule p[style*="color: #999"] {
+    background: #fff3cd;
+    border: 2px solid #FFC700;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    color: #856404 !important;
+    font-weight: 600;
+}
+
+/* ========================================
+   CREW FULL TEAM SCHEDULE - MOBILE RESPONSIVE
+   ======================================== */
+
+/* Landscape Suggestion Banner - Hidden by default */
+.landscape-suggestion-banner {
+    display: none !important;
+}
+
+/* Show banner only on mobile portrait (width < height) */
+@media screen and (max-width: 767px) and (orientation: portrait) {
+    .landscape-suggestion-banner {
+        display: block !important;
+    }
+}
+
+/* Alternative: Show on mobile when width is less than 500px */
+@media screen and (max-width: 500px) {
+    .landscape-suggestion-banner {
+        display: block !important;
+    }
+}
+
+/* Hide in landscape */
+@media screen and (max-width: 767px) and (orientation: landscape) {
+    .landscape-suggestion-banner {
+        display: none !important;
+    }
+}
+
+/* Pulse animation for banner */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 8px rgba(255, 199, 0, 0.3);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 4px 16px rgba(255, 199, 0, 0.5);
+    }
+}
+
+/* Mobile Portrait (320px - 767px, height > 500px) */
+@media screen and (max-width: 767px) and (min-height: 501px) {
+    #globalScheduleContainer .day-container {
+        padding: 15px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    #globalScheduleContainer h2 {
+        font-size: 18px !important;
+        padding-bottom: 8px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    #globalScheduleContainer h3 {
+        font-size: 13px !important;
+        margin: 8px 0 15px 0 !important;
+    }
+    
+    /* Make table scrollable horizontally */
+    #globalScheduleContainer .day-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #globalScheduleContainer table {
+        min-width: 600px;
+        font-size: 12px !important;
+    }
+    
+    #globalScheduleContainer table th {
+        padding: 10px 8px !important;
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+    
+    #globalScheduleContainer table td {
+        padding: 8px 6px !important;
+        font-size: 12px !important;
+    }
+    
+    #globalScheduleContainer table td span {
+        font-size: 11px !important;
+        padding: 3px 6px !important;
+    }
+}
+
+/* Mobile Landscape (max-width: 767px, max-height: 500px) */
+@media screen and (max-width: 767px) and (max-height: 500px) {
+    #globalScheduleContainer .day-container {
+        padding: 10px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    #globalScheduleContainer h2 {
+        font-size: 16px !important;
+        padding-bottom: 6px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    #globalScheduleContainer h3 {
+        font-size: 11px !important;
+        margin: 5px 0 10px 0 !important;
+    }
+    
+    /* Optimize table for landscape */
+    #globalScheduleContainer .day-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #globalScheduleContainer table {
+        width: 100%;
+        font-size: 10px !important;
+    }
+    
+    #globalScheduleContainer table th {
+        padding: 6px 4px !important;
+        font-size: 10px !important;
+    }
+    
+    #globalScheduleContainer table td {
+        padding: 5px 3px !important;
+        font-size: 10px !important;
+    }
+    
+    #globalScheduleContainer table td span {
+        font-size: 9px !important;
+        padding: 2px 4px !important;
+    }
+}
+
+/* Tablet Portrait (768px - 1024px) */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+    #globalScheduleContainer .day-container {
+        padding: 20px !important;
+    }
+    
+    #globalScheduleContainer h2 {
+        font-size: 20px !important;
+    }
+    
+    #globalScheduleContainer h3 {
+        font-size: 14px !important;
+    }
+    
+    #globalScheduleContainer table {
+        font-size: 13px !important;
+    }
+    
+    #globalScheduleContainer table th {
+        padding: 10px !important;
+        font-size: 13px !important;
+    }
+    
+    #globalScheduleContainer table td {
+        padding: 8px !important;
+        font-size: 13px !important;
+    }
+}
+
+/* Personal Schedule Cards - Mobile Responsive */
+@media screen and (max-width: 767px) {
+    #personalSchedule > div {
+        padding: 15px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    #personalSchedule h2 {
+        font-size: 20px !important;
+    }
+    
+    #personalSchedule h3 {
+        font-size: 16px !important;
+    }
+    
+    #personalSchedule p {
+        font-size: 14px !important;
+    }
+}
+
+/* ========================================
+   REQUEST SECTION - MOBILE RESPONSIVE
+   ======================================== */
+@media screen and (max-width: 767px) {
+    #requestSection .card {
+        padding: 15px !important;
+    }
+    
+    #requestSection h2 {
+        font-size: 20px !important;
+    }
+    
+    #requestSection h3 {
+        font-size: 16px !important;
+    }
+    
+    #requestSection input[type="date"] {
+        width: 100% !important;
+        margin-bottom: 10px !important;
+    }
+    
+    #requestSection button {
+        width: 100% !important;
+    }
+    
+    #requestHistory li {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px;
+    }
+}
+
+/* ========================================
+   CREW MANAGEMENT TABLE - RESPONSIVE
+   ======================================== */
+#crewTable table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#crewTable table th,
+#crewTable table td {
+    padding: 12px;
+    text-align: left;
+}
+
+/* Mobile responsive for crew management table */
+@media screen and (max-width: 767px) {
+    #crewTable table {
+        font-size: 13px;
+    }
+    
+    #crewTable table th,
+    #crewTable table td {
+        padding: 10px 8px;
+    }
+    
+    #crewTable table th {
+        font-size: 14px;
+    }
+    
+    #crewTable table td {
+        font-size: 13px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    #crewTable table {
+        font-size: 12px;
+    }
+    
+    #crewTable table th,
+    #crewTable table td {
+        padding: 8px 6px;
+    }
+    
+    #crewTable table th {
+        font-size: 13px;
+    }
+    
+    #crewTable table td {
+        font-size: 12px;
+    }
+}
+
+/* ========================================
+   HISTORY PAGE - RESPONSIVE
+   ======================================== */
+#historyList > div {
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    margin-bottom: 15px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+}
+
+#historyList > div:hover {
+    border-color: #FFC700 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* History Modal Responsive */
+#scheduleModal {
+    padding: 10px !important;
+}
+
+#scheduleModal > div {
+    width: 95% !important;
+    max-width: 1200px !important;
+    padding: 25px !important;
+}
+
+#scheduleModalContent .day-schedule table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+#scheduleModalContent .day-schedule table th,
+#scheduleModalContent .day-schedule table td {
+    padding: 10px;
+    border: 1px solid #dee2e6;
+}
+
+#scheduleModalContent .day-schedule table th {
+    background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+    color: white;
+    font-weight: 600;
+}
+
+/* Mobile responsive for history page */
+@media screen and (max-width: 767px) {
+    .main {
+        padding: 80px 10px 10px 10px !important;
+    }
+    
+    .card {
+        padding: 15px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .card h1 {
+        font-size: 22px !important;
+    }
+    
+    .card h2 {
+        font-size: 18px !important;
+    }
+    
+    #historyList > div {
+        padding: 15px !important;
+        margin-bottom: 12px !important;
+    }
+    
+    #historyList h3 {
+        font-size: 16px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    #historyList p {
+        font-size: 13px !important;
+        margin: 5px 0 !important;
+    }
+    
+    #historyList button {
+        width: 100% !important;
+        margin: 5px 0 !important;
+        padding: 10px !important;
+        font-size: 13px !important;
+    }
+    
+    /* Stack buttons vertically on mobile */
+    #historyList > div > div[style*="display: flex"] {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    /* Modal responsive for mobile */
+    #scheduleModal {
+        padding: 5px !important;
+    }
+    
+    #scheduleModal > div {
+        width: 98% !important;
+        max-width: 100% !important;
+        padding: 15px !important;
+        max-height: 95vh !important;
+    }
+    
+    #scheduleModal h2 {
+        font-size: 18px !important;
+    }
+    
+    #scheduleModal button {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+    }
+    
+    #scheduleModalContent .day-schedule {
+        padding: 12px !important;
+        margin-bottom: 20px !important;
+    }
+    
+    #scheduleModalContent .day-schedule h3 {
+        font-size: 16px !important;
+        padding: 12px !important;
+    }
+    
+    #scheduleModalContent .day-schedule table {
+        font-size: 11px !important;
+    }
+    
+    #scheduleModalContent .day-schedule table th,
+    #scheduleModalContent .day-schedule table td {
+        padding: 6px 4px !important;
+        font-size: 11px !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .main {
+        padding: 70px 8px 8px 8px !important;
+    }
+    
+    .card {
+        padding: 12px !important;
+    }
+    
+    .card h1 {
+        font-size: 20px !important;
+    }
+    
+    .card h2 {
+        font-size: 16px !important;
+    }
+    
+    #historyList > div {
+        padding: 12px !important;
+    }
+    
+    #historyList h3 {
+        font-size: 15px !important;
+    }
+    
+    #historyList p {
+        font-size: 12px !important;
+    }
+    
+    #historyList button {
+        padding: 8px !important;
+        font-size: 12px !important;
+    }
+    
+    /* Modal for small mobile */
+    #scheduleModal > div {
+        padding: 10px !important;
+    }
+    
+    #scheduleModal h2 {
+        font-size: 16px !important;
+    }
+    
+    #scheduleModalContent .day-schedule {
+        padding: 10px !important;
+    }
+    
+    #scheduleModalContent .day-schedule h3 {
+        font-size: 14px !important;
+        padding: 10px !important;
+    }
+    
+    #scheduleModalContent .day-schedule table {
+        font-size: 10px !important;
+    }
+    
+    #scheduleModalContent .day-schedule table th,
+    #scheduleModalContent .day-schedule table td {
+        padding: 5px 3px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* Landscape mode for mobile */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    #scheduleModal > div {
+        max-height: 85vh !important;
+        padding: 15px !important;
+    }
+    
+    #scheduleModalContent .day-schedule table {
+        font-size: 10px !important;
+    }
+    
+    #scheduleModalContent .day-schedule table th,
+    #scheduleModalContent .day-schedule table td {
+        padding: 5px 4px !important;
+        font-size: 10px !important;
+    }
+}
+

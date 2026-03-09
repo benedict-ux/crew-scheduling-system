@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Manager Dashboard</title>
+    <title>Crew Profiles</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body onload="loadCrew()">
 
 <!-- Mobile Menu Toggle -->
 <button class="mobile-menu-toggle">
@@ -33,40 +33,28 @@
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <div class="main">
-
     <div class="card">
-        <h1>Manager Dashboard</h1>
-
-        <label for="startDate"><strong>Select Week Start Date (Monday)</strong></label>
-        <input type="date" id="startDate" onchange="checkExistingSchedule()">
-        
-        <div id="scheduleWarning" style="display: none; margin-top: 10px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404;">
-            ⚠️ <strong>Warning:</strong> A schedule already exists for this week!
-        </div>
-
-        <br><br>
-
-        <button onclick="generateSchedule()">Generate Schedule</button>
-        <button onclick="publishLatest()">Publish Schedule</button>
-        
-        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 2px solid #e0e0e0;">
-            <h3 style="margin: 0 0 15px 0; color: #DC0000; font-size: 20px; font-weight: 600;">📅 Existing Schedules</h3>
-            <div id="existingSchedulesList" style="font-size: 14px; color: #666;">
-                Loading...
-            </div>
+        <h1>Crew Profiles Management</h1>
+        <p>Manage crew availability, school schedules, attendance priority, and ranks.</p>
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px;">
+            <input type="text" id="crewSearchInput" placeholder="🔍 Search crew by name..." 
+                onkeyup="searchCrew()" 
+                style="flex: 1; padding: 10px 15px; font-size: 16px; border: 2px solid #ccc; border-radius: 5px;">
+            <button onclick="loadCrew()">Refresh Crew Profiles</button>
+            <button onclick="openAddCrewModal()" style="background: #28a745; margin-left: 10px;">➕ Add Crew Profile</button>
         </div>
     </div>
 
     <div class="card">
-        <h2>Pending Unavailability Requests</h2>
-        <div id="requestList"></div>
+        <h2>Crew Profiles</h2>
+        <div id="crewProfileDetails" style="min-height: 200px; padding: 20px; text-align: center;">
+            <p style="color: #666; font-size: 16px;">⏳ Loading crew profiles...</p>
+        </div>
     </div>
-
-    <div class="card">
-        <h2>Crew Management</h2>
-        <div id="crewTable"></div>
-    </div>
-
+    
+    <!-- Hidden elements that manager.js expects -->
+    <div id="requestList" style="display:none;"></div>
+    <div id="crewTable" style="display:none;"></div>
 </div>
 
 <script type="module" src="js/manager.js"></script>

@@ -21,16 +21,26 @@ let currentCrewNickname = "";
 // ===============================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // Prevent back button from going to login page
-        window.history.pushState(null, "", window.location.href);
-        window.onpopstate = function() {
-            window.history.pushState(null, "", window.location.href);
-        };
+        // Prevent back button - if user tries to go back, redirect to current page
+        const currentPage = window.location.href;
+        
+        // Replace current history entry
+        window.history.replaceState(null, null, currentPage);
+        
+        // Listen for back button
+        window.addEventListener('popstate', function(event) {
+            // Immediately redirect back to crew page
+            window.location.replace('crew.html');
+        });
+        
+        console.log("User logged in:", user.email, "UID:", user.uid);
         
         const docSnap = await getDoc(doc(db, "users", user.uid));
         if (docSnap.exists()) {
             const userData = docSnap.data();
             currentCrewName = userData.name;
+            
+            console.log("Crew name loaded:", currentCrewName);
             
             // Try to get crew profile to find nickname
             try {
@@ -43,6 +53,7 @@ onAuthStateChanged(auth, async (user) => {
                 if (!crewProfileSnap.empty) {
                     const crewProfile = crewProfileSnap.docs[0].data();
                     currentCrewNickname = crewProfile.nickname || "";
+                    console.log("Crew nickname loaded:", currentCrewNickname);
                 }
             } catch (e) {
                 console.log("Could not load crew profile:", e);
@@ -50,6 +61,9 @@ onAuthStateChanged(auth, async (user) => {
             
             // Default view
             window.showSection('personal');
+        } else {
+            console.error("No user document found for UID:", user.uid);
+            alert("❌ Your account is not set up properly. Please contact your manager.\n\nEmail: " + user.email);
         }
     } else {
         window.location.href = "login.html";
@@ -94,6 +108,7 @@ async function loadMyPersonalSchedule(crewName) {
     
     if (snap.empty) {
         container.innerHTML = `
+            <h2 style="color: #DC0000; margin-bottom: 20px;">Welcome, ${crewName}! 👋</h2>
             <div class='card' style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px;'>
                 <h3 style='color: #856404; margin-bottom: 10px;'>📅 No Published Schedule</h3>
                 <p style='color: #856404;'>The manager hasn't published a schedule yet. Please check back later or contact your manager.</p>
@@ -113,6 +128,7 @@ async function loadMyPersonalSchedule(crewName) {
 
     if (!scheduleData) {
         container.innerHTML = `
+            <h2 style="color: #DC0000; margin-bottom: 20px;">Welcome, ${crewName}! 👋</h2>
             <div class='card' style='background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px;'>
                 <h3 style='color: #856404; margin-bottom: 10px;'>📅 No Active Schedule</h3>
                 <p style='color: #856404;'>All schedules have been archived. Please wait for the manager to publish a new schedule.</p>
@@ -121,29 +137,40 @@ async function loadMyPersonalSchedule(crewName) {
         return;
     }
 
-    let html = `<h2>Welcome, ${crewName}</h2>`;
+    let html = `<h2 style="color: #DC0000; margin-bottom: 20px;">Welcome, ${crewName}! 👋</h2>`;
     let found = false;
 
-    // Extract first name for matching (handles "Last, First Middle" format)
+    // Extract first name and last name for matching (handles "Last, First Middle" format)
     let firstName = crewName;
+    let lastName = crewName;
+    
     if (crewName.includes(',')) {
-        // "Celestino, Rose Ann" -> "Rose Ann" -> "Rose"
-        const afterComma = crewName.split(',')[1].trim();
-        firstName = afterComma.split(' ')[0]; // Get just the first name
+        // "De Guzman, Jackielyn" -> lastName: "De Guzman", firstName: "Jackielyn"
+        const parts = crewName.split(',');
+        lastName = parts[0].trim(); // "De Guzman"
+        const afterComma = parts[1].trim(); // "Jackielyn"
+        firstName = afterComma.split(' ')[0]; // Get just the first name "Jackielyn"
     }
 
-    console.log(`Crew name: ${crewName}, First name: ${firstName}, Nickname: ${currentCrewNickname}`);
+    console.log(`Crew name: ${crewName}, First name: ${firstName}, Last name: ${lastName}, Nickname: ${currentCrewNickname}`);
 
     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
-        // Match by first name, full name, nickname, or contains first name
+        // Debug: Log all crew names in this day's schedule
+        console.log(`${day} schedule:`, scheduleData[day].map(s => s.crewName));
+        
+        // Match by first name, last name, full name, nickname, or contains any of these
         const myShifts = scheduleData[day].filter(s => {
             const scheduleName = s.crewName || "";
+            const scheduleNameLower = scheduleName.toLowerCase();
+            
             // Check multiple matching options
             const matches = scheduleName === firstName || 
+                           scheduleName === lastName ||
                            scheduleName === crewName || 
                            (currentCrewNickname && scheduleName === currentCrewNickname) ||
-                           scheduleName.toLowerCase().includes(firstName.toLowerCase()) ||
-                           (currentCrewNickname && scheduleName.toLowerCase().includes(currentCrewNickname.toLowerCase()));
+                           scheduleNameLower.includes(firstName.toLowerCase()) ||
+                           scheduleNameLower.includes(lastName.toLowerCase()) ||
+                           (currentCrewNickname && scheduleNameLower.includes(currentCrewNickname.toLowerCase()));
             
             if (matches) {
                 console.log(`✅ Found match: "${scheduleName}" matches crew on ${day}`);
@@ -159,7 +186,16 @@ async function loadMyPersonalSchedule(crewName) {
                      </div>`;
         }
     });
-    container.innerHTML = found ? html : "<div class='card'>No shifts for you this week!</div>";
+    
+    // Always show the welcome message with the crew name
+    if (!found) {
+        html += `<div class="card" style="border-left: 5px solid #ffc107; margin-bottom: 10px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <p style="color: #856404; font-size: 16px; margin: 0;">📅 You don't have any shifts scheduled this week.</p>
+                    <p style="color: #666; font-size: 14px; margin-top: 10px;">Check back later or contact your manager if you think this is a mistake.</p>
+                 </div>`;
+    }
+    
+    container.innerHTML = html;
 }
 
 async function loadGlobalSchedule() {

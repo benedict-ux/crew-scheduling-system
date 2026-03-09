@@ -11,11 +11,17 @@ import {
 // ===============================
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // Prevent back button from going to login page
-        window.history.pushState(null, "", window.location.href);
-        window.onpopstate = function() {
-            window.history.pushState(null, "", window.location.href);
-        };
+        // Prevent back button - if user tries to go back, redirect to current page
+        const currentPage = window.location.href;
+        
+        // Replace current history entry
+        window.history.replaceState(null, null, currentPage);
+        
+        // Listen for back button
+        window.addEventListener('popstate', function(event) {
+            // Immediately redirect back to manager page
+            window.location.replace('manager.html');
+        });
         
         setTimeout(() => {
             loadCrew();
@@ -282,6 +288,8 @@ window.updateRoleType = async function(crewId, roleType) {
 // ===============================
 // 2E. UPDATE ATTENDANCE PRIORITY
 // ===============================
+// 2E. UPDATE ATTENDANCE PRIORITY
+// ===============================
 window.updateAttendancePriority = async function(crewId, priority) {
     try {
         const priorityValue = priority === "" ? 3 : parseInt(priority); // Default to 3 (normal)
@@ -291,6 +299,21 @@ window.updateAttendancePriority = async function(crewId, priority) {
         console.log("Attendance priority updated!");
     } catch (e) {
         console.error("Error updating attendance priority:", e);
+        alert("Update failed.");
+    }
+};
+
+// ===============================
+// 2E1. UPDATE SHIFT PREFERENCE
+// ===============================
+window.updateShiftPreference = async function(crewId, preference) {
+    try {
+        await updateDoc(doc(db, "crewProfiles", crewId), {
+            shiftPreference: preference
+        });
+        console.log("Shift preference updated to:", preference);
+    } catch (e) {
+        console.error("Error updating shift preference:", e);
         alert("Update failed.");
     }
 };
@@ -497,60 +520,64 @@ window.openAddCrewModal = function() {
                 overflow-y: auto;
                 box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             ">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;">Add New Crew Member</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; gap: 15px;">
+                    <h2 style="margin: 0; color: #DC0000; flex: 1;">Add New Crew Member</h2>
                     <button onclick="closeAddCrewModal()" style="
                         background: #dc3545;
                         color: white;
                         border: none;
-                        border-radius: 5px;
-                        padding: 8px 15px;
+                        border-radius: 8px;
+                        padding: 10px 18px;
                         cursor: pointer;
-                        font-size: 16px;
-                    ">✕ Close</button>
+                        font-size: 15px;
+                        font-weight: 600;
+                        transition: all 0.2s ease;
+                        box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+                        flex-shrink: 0;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(220,53,69,0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(220,53,69,0.3)'">✕ Close</button>
                 </div>
                 
                 <form id="addCrewForm" onsubmit="event.preventDefault(); saveNewCrew();">
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: bold;">Full Name: <span style="color: red;">*</span></label><br/>
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">Full Name: <span style="color: red;">*</span></label>
                         <input type="text" id="newCrewName" required 
                             placeholder="Last, First Middle"
-                            style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                            style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
                     </div>
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: bold;">Nickname (for schedule):</label><br/>
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">Nickname (for schedule):</label>
                         <input type="text" id="newCrewNickname" 
                             placeholder="Optional"
-                            style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                            style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
                     </div>
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: bold;">Email: <span style="color: red;">*</span></label><br/>
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">Email: <span style="color: red;">*</span></label>
                         <input type="email" id="newCrewEmail" required 
                             placeholder="crew@example.com"
-                            style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
-                        <small style="color: #666;">This will be used for login credentials</small>
+                            style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                        <small style="color: #666; display: block; margin-top: 5px;">This will be used for login credentials</small>
                     </div>
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: bold;">Password: <span style="color: red;">*</span></label><br/>
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">Password: <span style="color: red;">*</span></label>
                         <input type="password" id="newCrewPassword" required minlength="6"
                             placeholder="Minimum 6 characters"
-                            style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                            style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
                     </div>
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: bold;">Role Type:</label><br/>
-                        <select id="newCrewRole" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">Role Type:</label>
+                        <select id="newCrewRole" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
                             <option value="regular">Regular</option>
                             <option value="student">Working Student</option>
                         </select>
                     </div>
                     
-                    <div style="margin-bottom: 15px;">
-                        <label style="font-weight: bold;">Top Priority Station:</label><br/>
-                        <select id="newCrewStation" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                    <div style="margin-bottom: 25px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">Top Priority Station:</label>
+                        <select id="newCrewStation" style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
                             <option value="">Select Station</option>
                             <option value="SC/AGGRE">SC/AGGRE</option>
                             <option value="ASSEMBLER">ASSEMBLER</option>
@@ -570,15 +597,17 @@ window.openAddCrewModal = function() {
                     
                     <button type="submit" style="
                         width: 100%;
-                        background: #28a745;
+                        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
                         color: white;
                         border: none;
-                        border-radius: 5px;
-                        padding: 12px;
+                        border-radius: 8px;
+                        padding: 14px;
                         cursor: pointer;
                         font-size: 16px;
                         font-weight: bold;
-                    ">➕ Add Crew Member</button>
+                        box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+                        transition: all 0.2s ease;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(40,167,69,0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 6px rgba(40,167,69,0.3)'">➕ Add Crew Member</button>
                 </form>
             </div>
         </div>
@@ -1001,6 +1030,14 @@ window.openCrewModal = async function(crewId) {
                                 <option value="3" ${(crew.attendancePriority === 3 || !crew.attendancePriority) ? "selected" : ""}>3 - Normal</option>
                                 <option value="2" ${crew.attendancePriority === 2 ? "selected" : ""}>2 - Sometimes Absent</option>
                                 <option value="1" ${crew.attendancePriority === 1 ? "selected" : ""}>1 - Often Absent</option>
+                            </select>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="font-weight: bold;">Shift Preference:</label><br/>
+                            <select onchange="updateShiftPreference('${crewId}', this.value)" style="width: 100%; padding: 8px; margin-top: 5px;">
+                                <option value="flexible" ${(crew.shiftPreference === "flexible" || !crew.shiftPreference) ? "selected" : ""}>Flexible (Any Shift)</option>
+                                <option value="opening" ${crew.shiftPreference === "opening" ? "selected" : ""}>Opening Shift</option>
+                                <option value="closing" ${crew.shiftPreference === "closing" ? "selected" : ""}>Closing Shift</option>
                             </select>
                         </div>
                     </div>

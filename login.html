@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>Jollibee EDSA Kamias - Crew Scheduling</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
     <link rel="stylesheet" href="css/styles.css">
     <style>
         * {
@@ -59,7 +61,6 @@
             overflow: hidden;
             width: 900px;
             max-width: 95%;
-            max-height: 90vh;
             display: flex;
             position: relative;
             z-index: 1;
@@ -267,16 +268,87 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 0;
+                align-items: flex-start;
+            }
+            
             .login-container {
                 flex-direction: column;
+                width: 100%;
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+                box-shadow: none;
             }
             
             .login-left {
-                padding: 40px 30px;
+                padding: 35px 25px;
+                min-height: auto;
+            }
+            
+            .login-left h1 {
+                font-size: 26px;
+            }
+            
+            .login-left .bee-icon {
+                font-size: 45px;
+                margin: 8px 0;
+            }
+            
+            .login-left p {
+                font-size: 15px;
+                margin: 0 0 8px 0;
+            }
+            
+            .login-left .branch {
+                font-size: 18px;
+                padding: 12px 22px;
+                margin-top: 12px;
+            }
+            
+            .login-left img {
+                width: 150px !important;
             }
             
             .login-right {
-                padding: 40px 30px;
+                padding: 35px 30px 40px 30px;
+                flex: 1;
+            }
+            
+            .login-right h2 {
+                font-size: 26px;
+                margin-bottom: 8px;
+            }
+            
+            .login-right p {
+                font-size: 14px;
+                margin-bottom: 30px;
+            }
+            
+            .input-group {
+                margin-bottom: 22px;
+            }
+            
+            .input-group label {
+                font-size: 14px;
+                margin-bottom: 6px;
+            }
+            
+            .input-group input {
+                padding: 13px 16px;
+                font-size: 16px;
+            }
+            
+            .login-btn {
+                padding: 15px;
+                font-size: 17px;
+            }
+            
+            .footer-text {
+                font-size: 12px;
+                margin-top: 25px;
             }
             
             .food-item {
@@ -285,6 +357,71 @@
             
             .loading-text {
                 font-size: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-left {
+                padding: 30px 20px;
+            }
+            
+            .login-left h1 {
+                font-size: 22px;
+            }
+            
+            .login-left .bee-icon {
+                font-size: 40px;
+            }
+            
+            .login-left p {
+                font-size: 14px;
+            }
+            
+            .login-left .branch {
+                font-size: 16px;
+                padding: 10px 18px;
+            }
+            
+            .login-left img {
+                width: 130px !important;
+            }
+            
+            .login-right {
+                padding: 30px 25px 35px 25px;
+            }
+            
+            .login-right h2 {
+                font-size: 24px;
+            }
+            
+            .login-right p {
+                font-size: 13px;
+            }
+            
+            .input-group {
+                margin-bottom: 20px;
+            }
+            
+            .input-group input {
+                padding: 12px 15px;
+                font-size: 15px;
+            }
+            
+            .login-btn {
+                padding: 14px;
+                font-size: 16px;
+            }
+            
+            .footer-text {
+                margin-top: 20px;
+            }
+            
+            .food-item {
+                font-size: 35px;
+            }
+            
+            .loading-text {
+                font-size: 18px;
             }
         }
     </style>

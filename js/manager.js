@@ -23,11 +23,14 @@ onAuthStateChanged(auth, (user) => {
             window.location.replace('manager.html');
         });
         
-        setTimeout(() => {
-            loadCrew();
-            loadRequests();
-            loadExistingSchedules(); // Load list of existing schedules
-        }, 200);
+        // Load all data in parallel for faster performance
+        Promise.all([
+            loadCrew(),
+            loadRequests(),
+            loadExistingSchedules()
+        ]).catch(error => {
+            console.error("Error loading data:", error);
+        });
     } else {
         window.location.href = "login.html";
     }
@@ -283,6 +286,29 @@ window.updateRoleType = async function(crewId, roleType) {
         console.error("Error updating role type:", e);
         alert("Update failed.");
     }
+};
+
+// ===============================
+// 2D. TOGGLE WEEKLY SCHEDULE VISIBILITY
+// ===============================
+window.toggleWeeklyScheduleVisibility = function(crewId, roleType) {
+    // Find all the "Can open next day" checkboxes in the modal
+    const modal = document.getElementById('crewModal');
+    if (!modal) return;
+    
+    // Find all labels that contain "Can open next day"
+    const labels = modal.querySelectorAll('label');
+    labels.forEach(label => {
+        if (label.textContent.includes('Can open next day')) {
+            // Show or hide based on role type
+            if (roleType === 'student') {
+                label.style.display = '';
+                label.parentElement.style.display = '';
+            } else {
+                label.style.display = 'none';
+            }
+        }
+    });
 };
 
 // ===============================
@@ -944,9 +970,12 @@ window.openCrewModal = async function(crewId) {
                     border-radius: 10px;
                     padding: 30px;
                     max-width: 800px;
+                    width: 90%;
                     max-height: 90vh;
                     overflow-y: auto;
+                    overflow-x: hidden;
                     box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+                    -webkit-overflow-scrolling: touch;
                 ">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <h2 style="margin: 0;">${crew.name}</h2>
@@ -981,39 +1010,39 @@ window.openCrewModal = async function(crewId) {
                         <small style="color: #666;">If set, this nickname will appear in the schedule instead of the full name.</small>
                     </div>
                     
-                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;">
-                        <h4 style="margin: 0 0 10px 0; color: #495057;">Login Credentials</h4>
-                        <div style="margin-bottom: 10px;">
-                            <label style="font-weight: bold;">Email:</label><br/>
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;">
+                        <h4 style="margin: 0 0 8px 0; color: #495057;">Login Credentials</h4>
+                        <div style="margin-bottom: 8px;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 3px;">Email:</label>
                             <input type="email" value="${userEmail}" 
                                 onchange="updateCrewEmail('${crewId}', this.value)" 
                                 placeholder="crew@example.com"
-                                style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                                style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
                         </div>
-                        <div>
-                            <label style="font-weight: bold;">New Password:</label><br/>
+                        <div style="margin-bottom: 5px;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 3px;">New Password:</label>
                             <input type="password" id="newPassword-${crewId}" 
                                 placeholder="Leave blank to keep current password"
-                                style="width: calc(100% - 120px); padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                                style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; margin-bottom: 5px;">
                             <button onclick="updateCrewPassword('${crewId}', '${crew.uid || ''}')" 
-                                style="padding: 8px 15px; margin-left: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                style="width: 100%; padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
                                 Update Password
                             </button>
                         </div>
-                        <small style="color: #666;">Password must be at least 6 characters</small>
+                        <small style="color: #666; display: block; margin-top: 3px;">Password must be at least 6 characters</small>
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                         <div>
                             <label style="font-weight: bold;">Role Type:</label><br/>
-                            <select onchange="updateRoleType('${crewId}', this.value)" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <select id="roleTypeSelect-${crewId}" onchange="updateRoleType('${crewId}', this.value); toggleWeeklyScheduleVisibility('${crewId}', this.value); this.blur();" style="width: 100%; padding: 8px; margin-top: 5px;">
                                 <option value="regular" ${crew.roleType === "regular" ? "selected" : ""}>Regular</option>
                                 <option value="student" ${crew.roleType === "student" ? "selected" : ""}>Working Student</option>
                             </select>
                         </div>
                         <div>
                             <label style="font-weight: bold;">Seniority Rank:</label><br/>
-                            <select onchange="updateRank('${crewId}', this.value)" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <select onchange="updateRank('${crewId}', this.value); this.blur();" style="width: 100%; padding: 8px; margin-top: 5px;">
                                 <option value="">N/A</option>
                                 <option value="1" ${crew.seniorityRank === 1 ? "selected" : ""}>1 (Highest)</option>
                                 <option value="2" ${crew.seniorityRank === 2 ? "selected" : ""}>2</option>
@@ -1024,7 +1053,7 @@ window.openCrewModal = async function(crewId) {
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-weight: bold;">Attendance Priority:</label><br/>
-                            <select onchange="updateAttendancePriority('${crewId}', this.value)" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <select onchange="updateAttendancePriority('${crewId}', this.value); this.blur();" style="width: 100%; padding: 8px; margin-top: 5px;">
                                 <option value="5" ${crew.attendancePriority === 5 ? "selected" : ""}>5 - Always Present</option>
                                 <option value="4" ${crew.attendancePriority === 4 ? "selected" : ""}>4 - Reliable</option>
                                 <option value="3" ${(crew.attendancePriority === 3 || !crew.attendancePriority) ? "selected" : ""}>3 - Normal</option>
@@ -1034,7 +1063,7 @@ window.openCrewModal = async function(crewId) {
                         </div>
                         <div style="grid-column: 1 / -1;">
                             <label style="font-weight: bold;">Shift Preference:</label><br/>
-                            <select onchange="updateShiftPreference('${crewId}', this.value)" style="width: 100%; padding: 8px; margin-top: 5px;">
+                            <select onchange="updateShiftPreference('${crewId}', this.value); this.blur();" style="width: 100%; padding: 8px; margin-top: 5px;">
                                 <option value="flexible" ${(crew.shiftPreference === "flexible" || !crew.shiftPreference) ? "selected" : ""}>Flexible (Any Shift)</option>
                                 <option value="opening" ${crew.shiftPreference === "opening" ? "selected" : ""}>Opening Shift</option>
                                 <option value="closing" ${crew.shiftPreference === "closing" ? "selected" : ""}>Closing Shift</option>

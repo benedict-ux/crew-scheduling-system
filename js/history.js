@@ -403,3 +403,172 @@ window.logout = async function() {
         alert("Error logging out. Please try again.");
     }
 };
+
+
+// Download schedule as Excel
+window.downloadSchedule = async function(scheduleId) {
+    if (typeof XLSX === 'undefined') {
+        alert('Excel library not loaded. Please refresh the page and try again.');
+        return;
+    }
+
+    try {
+        const scheduleDoc = await getDoc(doc(db, "weeklySchedules", scheduleId));
+        if (!scheduleDoc.exists()) {
+            alert('Schedule not found.');
+            return;
+        }
+
+        const scheduleData = scheduleDoc.data();
+        const scheduleByDay = scheduleData.scheduleData || scheduleData;
+        const startDate = scheduleData.startDate;
+        
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const stationOrder = [
+            "SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", 
+            "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"
+        ];
+        
+        const workbook = XLSX.utils.book_new();
+        let hasData = false;
+
+        days.forEach(day => {
+            const dayData = scheduleByDay[day];
+            
+            if (!dayData || !Array.isArray(dayData) || dayData.length === 0) {
+                console.log(`No data for ${day}`);
+                return;
+            }
+
+            const wsData = [];
+            wsData.push([day.toUpperCase()]);
+            wsData.push([`DATE: ${startDate || ''}`]);
+            wsData.push([]);
+            wsData.push(['STATION', 'NAME', 'TIME', '15', '30', '60', '15', 'SIGNATURE']);
+
+            // Group assignments by station
+            const stationGroups = {};
+            dayData.forEach(assignment => {
+                const station = assignment.station || 'Unknown';
+                if (!stationGroups[station]) {
+                    stationGroups[station] = [];
+                }
+                stationGroups[station].push(assignment);
+            });
+
+            // Process stations in order
+            stationOrder.forEach(stationName => {
+                const assignments = stationGroups[stationName];
+                if (!assignments || assignments.length === 0) return;
+                
+                // First row with station name
+                const firstAssignment = assignments[0];
+                wsData.push([
+                    stationName,
+                    firstAssignment.name || '',
+                    firstAssignment.time || '',
+                    '', '', '', '', ''
+                ]);
+                
+                // Remaining rows without station name
+                for (let i = 1; i < assignments.length; i++) {
+                    const assignment = assignments[i];
+                    wsData.push([
+                        '',
+                        assignment.name || '',
+                        assignment.time || '',
+                        '', '', '', '', ''
+                    ]);
+                }
+            });
+
+            wsData.push([]);
+            wsData.push([]);
+            wsData.push(['ASK YOUR TL IF THERE\'S CORRECTION']);
+            wsData.push(['DON\'T BE LATE']);
+            wsData.push(['EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA']);
+            wsData.push(['PLEASE CALL STORE OR SEND MESSAGE IN OUR']);
+            wsData.push(['FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE']);
+            wsData.push(['REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST']);
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            ws['!cols'] = [
+                { wch: 18 }, { wch: 22 }, { wch: 20 },
+                { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 22 }
+            ];
+
+            ws['!rows'] = [];
+            for (let i = 0; i < wsData.length; i++) {
+                ws['!rows'][i] = { hpt: 22 };
+            }
+            ws['!rows'][0] = { hpt: 28 };
+            ws['!rows'][3] = { hpt: 28 };
+
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!ws[cellAddress]) continue;
+                    
+                    if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                    
+                    if (R === 3) {
+                        ws[cellAddress].s = {
+                            fill: { fgColor: { rgb: "FFD700" } },
+                            font: { bold: true, sz: 12 },
+                            alignment: { horizontal: "center", vertical: "center" },
+                            border: {
+                                top: { style: "thin" }, bottom: { style: "thin" },
+                                left: { style: "thin" }, right: { style: "thin" }
+                            }
+                        };
+                    }
+                    else if (C === 0 && R > 3 && ws[cellAddress].v && ws[cellAddress].v !== '') {
+                        const reminderStart = wsData.findIndex((row, idx) => idx > 3 && row[0] && row[0].includes('ASK YOUR TL'));
+                        if (reminderStart === -1 || R < reminderStart) {
+                            ws[cellAddress].s = {
+                                fill: { fgColor: { rgb: "FFD700" } },
+                                font: { bold: true, sz: 11 },
+                                alignment: { horizontal: "center", vertical: "center" },
+                                border: {
+                                    top: { style: "thin" }, bottom: { style: "thin" },
+                                    left: { style: "thin" }, right: { style: "thin" }
+                                }
+                            };
+                        }
+                    }
+                    else if (R > 3 && C === 0 && ws[cellAddress].v && 
+                            (ws[cellAddress].v.includes('ASK YOUR TL') || 
+                             ws[cellAddress].v.includes('DON\'T BE LATE') ||
+                             ws[cellAddress].v.includes('EXCESSIVE') ||
+                             ws[cellAddress].v.includes('PLEASE CALL') ||
+                             ws[cellAddress].v.includes('FOR NO CALL') ||
+                             ws[cellAddress].v.includes('REQUEST MUST'))) {
+                        ws[cellAddress].s = {
+                            fill: { fgColor: { rgb: "FFD700" } },
+                            font: { sz: 10 },
+                            alignment: { horizontal: "left", vertical: "center" }
+                        };
+                    }
+                }
+            }
+
+            XLSX.utils.book_append_sheet(workbook, ws, day);
+            hasData = true;
+        });
+
+        if (!hasData) {
+            alert('❌ No schedule data found.');
+            return;
+        }
+
+        const dateStr = startDate || new Date().toISOString().split('T')[0];
+        XLSX.writeFile(workbook, `weekly_schedule_${dateStr}.xlsx`, { cellStyles: true });
+        
+        alert('✅ Schedule downloaded successfully!');
+    } catch (error) {
+        console.error("Error downloading schedule:", error);
+        alert('❌ Error downloading schedule: ' + error.message);
+    }
+};

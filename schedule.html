@@ -5,82 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
     <link rel="stylesheet" href="css/styles.css">
+    <!-- SheetJS library for Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         @media print {
             .sidebar, .no-print, .mobile-menu-toggle { display: none !important; }
-            body { margin: 0; }
-            .main { margin: 0; padding: 0; }
+            body { 
+                margin: 0;
+                padding: 0;
+            }
+            .main { 
+                margin: 0; 
+                padding: 0;
+                width: 100%;
+            }
+            
+            #scheduleContainer {
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
             
             .day-container {
                 page-break-after: always;
                 page-break-inside: avoid;
-                padding: 2px !important;
+                padding: 8mm 8mm !important;
                 margin: 0 !important;
                 box-shadow: none !important;
+                min-height: 100vh;
+                max-height: 100vh;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
+            
+            /* Remove page break after the last day (Sunday) */
+            .day-container:last-child {
+                page-break-after: avoid !important;
             }
             
             .day-container h2 {
-                font-size: 12px !important;
-                margin: 0px !important;
-                padding: 2px 0 2px 0 !important;
-                border-bottom: 2px solid #000 !important;
+                font-size: 16px !important;
+                margin: 0 0 2px 0 !important;
+                padding: 4px 0 !important;
+                border-bottom: 2px solid #DC0000 !important;
+                text-align: center;
+                color: #DC0000;
             }
             
             .day-container h3 {
-                font-size: 9px !important;
-                margin: 0px !important;
-                padding: 0px !important;
+                font-size: 11px !important;
+                margin: 0 0 5px 0 !important;
+                padding: 0 !important;
+                text-align: center;
+                color: #666;
             }
             
             .day-container table {
-                font-size: 8px !important;
+                font-size: 9px !important;
                 width: 100% !important;
-                margin-top: 1px !important;
+                margin: 0 0 5px 0 !important;
+                border-collapse: collapse !important;
             }
             
             .day-container table th {
-                padding: 2px 1px !important;
-                font-size: 8px !important;
-                line-height: 1 !important;
+                padding: 4px 2px !important;
+                font-size: 9px !important;
+                line-height: 1.1 !important;
+                background: #DC0000 !important;
+                color: white !important;
+                border: 1px solid #666 !important;
+                font-weight: bold !important;
             }
             
             .day-container table td {
-                padding: 1px 2px !important;
+                padding: 2px 1px !important;
                 font-size: 8px !important;
                 line-height: 1.1 !important;
-                height: 13px !important;
+                border: 1px solid #999 !important;
+                vertical-align: middle !important;
             }
             
             .day-container select {
                 font-size: 8px !important;
-                padding: 0px !important;
-                height: 13px !important;
+                padding: 1px !important;
                 border: none !important;
                 background: transparent !important;
                 appearance: none !important;
                 -webkit-appearance: none !important;
                 -moz-appearance: none !important;
                 font-weight: bold !important;
+                width: 100%;
             }
             
             .day-container tbody tr.blank-row td {
-                height: 8px !important;
-                padding: 0px !important;
+                padding: 2px 1px !important;
+                border: 1px solid #ccc !important;
+                min-height: 12px !important;
+                height: 12px !important;
+            }
+            
+            /* Make blank input fields print properly */
+            .blank-input {
+                border: none !important;
+                background: transparent !important;
+                font-size: 8px !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                font-family: inherit !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
             
             .reminder-box {
-                margin-top: 2px !important;
-                padding: 2px 4px !important;
-                font-size: 6.5px !important;
+                margin-top: 4px !important;
+                padding: 4px 6px !important;
+                font-size: 7px !important;
                 line-height: 1.3 !important;
                 background: #fff3cd !important;
                 border: 1px solid #ffc107 !important;
-                border-radius: 3px !important;
+                border-radius: 2px !important;
+                page-break-inside: avoid !important;
+                text-align: left !important;
             }
             
             .reminder-box p {
-                margin: 0.5px 0 !important;
+                margin: 1.5px 0 !important;
                 line-height: 1.3 !important;
+                text-align: left !important;
             }
             
             .save-button-container {
@@ -132,37 +185,47 @@
             background: #218838;
         }
         
-        /* Portrait mode warning */
+        /* Ensure hamburger button is always clickable and above everything */
+        .mobile-menu-toggle {
+            z-index: 10010 !important;
+            pointer-events: auto !important;
+            position: fixed !important;
+            isolation: isolate !important;
+            touch-action: manipulation !important;
+            cursor: pointer !important;
+        }
+        
+        /* Portrait mode warning - REMOVED, too intrusive */
         .rotate-message {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(220, 0, 0, 0.95);
-            color: white;
-            z-index: 10000;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            text-align: center;
-            padding: 20px;
+            display: none !important;
         }
         
         .rotate-message h2 {
             font-size: 24px;
             margin-bottom: 20px;
+            color: white;
+            position: relative;
+            z-index: 1;
         }
         
         .rotate-message p {
             font-size: 18px;
             margin-bottom: 30px;
+            color: white;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .rotate-message img {
+            position: relative;
+            z-index: 1;
         }
         
         .rotate-icon {
             font-size: 60px;
             animation: rotate 2s infinite;
+            position: relative;
+            z-index: 1;
         }
         
         @keyframes rotate {
@@ -178,16 +241,7 @@
             }
         }
         
-        @media screen and (max-width: 768px) and (min-height: 501px) {
-            /* This is portrait - show rotate message */
-            .rotate-message {
-                display: flex;
-            }
-            
-            .main {
-                display: none;
-            }
-        }
+        /* Removed intrusive portrait blocking - users can navigate in portrait mode */
         
         /* Mobile Portrait - Hide extra columns, show only STATION, NAME, TIME */
         @media screen and (max-width: 768px) and (orientation: portrait) {
@@ -215,17 +269,17 @@
                 margin-bottom: 10px !important;
             }
             
-            /* Hide columns 4, 5, 6, 7, 8 (15, 30, 60, 15, SIGNATURE) */
-            .schedule-table thead tr th:nth-child(4),
-            .schedule-table thead tr th:nth-child(5),
-            .schedule-table thead tr th:nth-child(6),
-            .schedule-table thead tr th:nth-child(7),
-            .schedule-table thead tr th:nth-child(8),
-            .schedule-table tbody tr td:nth-child(4),
-            .schedule-table tbody tr td:nth-child(5),
-            .schedule-table tbody tr td:nth-child(6),
-            .schedule-table tbody tr td:nth-child(7),
-            .schedule-table tbody tr td:nth-child(8) {
+            /* Hide columns 4, 5, 6, 7, 8 (15, 30, 60, 15, SIGNATURE) in portrait */
+            .day-container table thead tr th:nth-child(4),
+            .day-container table thead tr th:nth-child(5),
+            .day-container table thead tr th:nth-child(6),
+            .day-container table thead tr th:nth-child(7),
+            .day-container table thead tr th:nth-child(8),
+            .day-container table tbody tr td:nth-child(4),
+            .day-container table tbody tr td:nth-child(5),
+            .day-container table tbody tr td:nth-child(6),
+            .day-container table tbody tr td:nth-child(7),
+            .day-container table tbody tr td:nth-child(8) {
                 display: none !important;
             }
             
@@ -295,11 +349,13 @@
                 padding: 10px !important;
                 margin: 0 !important;
                 flex: 1 1 100% !important;
+                text-align: left !important;
             }
             
             .reminder-box p {
                 font-size: 10px !important;
                 margin: 3px 0 !important;
+                text-align: left !important;
             }
             
             /* Stack reminder and button vertically on mobile */
@@ -320,7 +376,14 @@
         }
         
         /* Mobile Landscape - Show all columns with horizontal scroll */
-        @media screen and (max-width: 768px) and (orientation: landscape) {
+        /* Apply to ALL devices in landscape orientation */
+        @media screen and (orientation: landscape) and (max-height: 600px) {
+            /* Allow sidebar to work normally - removed forced hiding */
+            
+            .main {
+                padding: 10px !important;
+            }
+            
             #scheduleContainer {
                 padding: 8px;
                 overflow-x: auto;
@@ -394,8 +457,8 @@
     <div class="rotate-icon">📱 → 🔄</div>
 </div>
 
-<!-- Mobile Menu Toggle -->
-<button class="mobile-menu-toggle">
+<!-- Mobile Menu Toggle - MUST be after rotate-message in DOM -->
+<button class="mobile-menu-toggle" id="mobileMenuBtn">
     <span></span>
     <span></span>
     <span></span>
@@ -417,7 +480,7 @@
 </div>
 
 <!-- Overlay for mobile -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="main">
     <!-- Landscape Orientation Banner (Mobile Portrait Only) -->
@@ -433,60 +496,96 @@
         <button class="print-button" onclick="loadSchedule()" style="background: #007bff;">🔄 Refresh</button>
     </div>
 
-    <div id="scheduleContainer" style="text-align: center; padding: 20px; color: #666;">
+    <div id="scheduleContainer" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 20px; color: #666; font-size: 16px;">
         Loading schedule...
     </div>
 </div>
 
 <script type="module" src="js/schedule.js"></script>
 <script>
-    function toggleSidebar(event) {
-        if (event) {
-            event.stopPropagation();
-            event.preventDefault();
-        }
+    function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
-        sidebar.classList.toggle('active');
-        overlay.classList.toggle('active');
+        
+        if (sidebar && overlay) {
+            const isActive = sidebar.classList.contains('active');
+            
+            if (isActive) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            } else {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            }
+        }
     }
     
-    // Prevent sidebar from auto-opening on mobile
+    function closeSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        
+        if (sidebar && overlay) {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
-        // Only the hamburger button should open the sidebar
+        // Hamburger button opens/closes sidebar
         const menuToggle = document.querySelector('.mobile-menu-toggle');
+        console.log('Menu toggle button found:', menuToggle);
+        
         if (menuToggle) {
             menuToggle.addEventListener('click', function(e) {
+                console.log('Hamburger button clicked!');
                 e.stopPropagation();
                 e.preventDefault();
                 toggleSidebar();
             });
+            
+            // Also try touch events for mobile
+            menuToggle.addEventListener('touchstart', function(e) {
+                console.log('Hamburger button touched!');
+                e.stopPropagation();
+                e.preventDefault();
+                toggleSidebar();
+            }, { passive: false });
         }
+        
+        // Close sidebar on orientation change (but don't hide the button)
+        window.addEventListener('orientationchange', function() {
+            console.log('Orientation changed - closing sidebar');
+            closeSidebar();
+        });
+        
+        // Close sidebar on window resize
+        window.addEventListener('resize', function() {
+            // Just close the sidebar, don't hide controls
+            if (document.getElementById('sidebar').classList.contains('active')) {
+                closeSidebar();
+            }
+        });
         
         // Clicking overlay closes sidebar
         const overlay = document.getElementById('sidebarOverlay');
         if (overlay) {
             overlay.addEventListener('click', function(e) {
                 e.stopPropagation();
-                const sidebar = document.getElementById('sidebar');
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
+                closeSidebar();
             });
         }
         
-        // Prevent any other clicks from affecting sidebar
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('sidebar');
-            const menuToggle = document.querySelector('.mobile-menu-toggle');
-            
-            // If click is not on sidebar or menu toggle, and sidebar is open, close it
-            if (sidebar && sidebar.classList.contains('active')) {
-                if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-                    sidebar.classList.remove('active');
-                    document.getElementById('sidebarOverlay').classList.remove('active');
-                }
-            }
-        }, true);
+        // Clicking sidebar links closes sidebar on mobile
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            const sidebarLinks = sidebar.querySelectorAll('a');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    // Small delay to allow navigation to complete
+                    setTimeout(closeSidebar, 100);
+                });
+            });
+        }
         
         // Prevent clicks on dropdowns from closing sidebar
         document.addEventListener('click', function(e) {
@@ -494,6 +593,15 @@
                 e.stopPropagation();
             }
         });
+        
+        // Debug: Log what element is actually receiving clicks in the button area
+        document.addEventListener('click', function(e) {
+            const rect = menuToggle?.getBoundingClientRect();
+            if (rect && e.clientX >= rect.left && e.clientX <= rect.right && 
+                e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                console.log('Click in button area, but target is:', e.target);
+            }
+        }, true);
     });
 </script>
 

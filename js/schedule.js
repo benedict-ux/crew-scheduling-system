@@ -214,13 +214,13 @@ window.loadSchedule = async function () {
                                             <td style="background: #fafafa;"></td>
                                         </tr>
                                         <tr class="blank-row">
-                                            <td></td>
-                                            <td></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
+                                            <td><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                            <td><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
                                         </tr>
                                     `;
                                 }).join('');
@@ -229,17 +229,17 @@ window.loadSchedule = async function () {
                     </table>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 15px; gap: 20px; flex-wrap: wrap;">
-                        <div class="reminder-box" style="flex: 1; min-width: 250px; margin: 0;">
-                            <p style="font-weight: bold; margin: 0 0 8px 0;">ASK YOUR TL IF THERE'S CORRECTION</p>
-                            <p style="margin: 3px 0;">DON'T BE LATE</p>
-                            <p style="margin: 3px 0;">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</p>
-                            <p style="margin: 3px 0;">PLEASE CALL STORE OR SEND MESSAGE IN OUR</p>
-                            <p style="margin: 3px 0;">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</p>
-                            <p style="margin: 3px 0;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</p>
+                    <div style="display: flex; justify-content: flex-start; align-items: flex-start; margin-top: 15px; gap: 20px; flex-wrap: wrap;">
+                        <div class="reminder-box" style="flex: 0 0 auto; min-width: 250px; max-width: 400px; margin: 0; text-align: left;">
+                            <p style="font-weight: bold; margin: 0 0 8px 0; text-align: left;">ASK YOUR TL IF THERE'S CORRECTION</p>
+                            <p style="margin: 3px 0; text-align: left;">DON'T BE LATE</p>
+                            <p style="margin: 3px 0; text-align: left;">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</p>
+                            <p style="margin: 3px 0; text-align: left;">PLEASE CALL STORE OR SEND MESSAGE IN OUR</p>
+                            <p style="margin: 3px 0; text-align: left;">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</p>
+                            <p style="margin: 3px 0; text-align: left;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</p>
                         </div>
                         
-                        <div class="save-button-container" style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                        <div class="save-button-container" style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: auto;">
                             <button onclick="saveDayChanges('${day}')" style="white-space: nowrap;">
                                 💾 Save ${day} Changes
                             </button>
@@ -533,4 +533,188 @@ window.logout = async function() {
         console.error("Error logging out:", e);
         alert("Error logging out. Please try again.");
     }
+};
+
+
+// Export schedule to Excel with separate sheets for each day
+window.exportToCSV = function() {
+    if (typeof XLSX === 'undefined') {
+        alert('Excel library not loaded. Please refresh the page and try again.');
+        return;
+    }
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const workbook = XLSX.utils.book_new();
+    let hasData = false;
+
+    days.forEach(day => {
+        const dayContainer = document.getElementById(`day-${day}`);
+        if (!dayContainer) return;
+
+        // Create worksheet data array
+        const wsData = [];
+        
+        // Add day header
+        const dateText = dayContainer.querySelector('h3')?.textContent || '';
+        wsData.push([day.toUpperCase()]);
+        wsData.push([dateText]);
+        wsData.push([]); // Empty row for spacing
+        
+        // Add column headers
+        wsData.push(['STATION', 'NAME', 'TIME', '15', '30', '60', '15', 'SIGNATURE']);
+
+        // Get table and process by station groups
+        const table = dayContainer.querySelector('table tbody');
+        if (table) {
+            const rows = Array.from(table.querySelectorAll('tr'));
+            let currentStation = '';
+            let isFirstInStation = true;
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 0) return;
+                
+                // Check if first cell is a station (has rowspan or is bold/red)
+                const firstCell = cells[0];
+                const firstCellText = firstCell.textContent.trim();
+                
+                // If this is a new station (first cell has rowspan > 1)
+                if (firstCell.rowSpan > 1 && firstCellText) {
+                    currentStation = firstCellText;
+                    isFirstInStation = true;
+                }
+                
+                // Get name from second cell (dropdown or text)
+                const nameCell = cells[1];
+                const nameSelect = nameCell?.querySelector('select');
+                const name = nameSelect ? nameSelect.value : (nameCell?.textContent.trim() || '');
+                
+                // Get time from third cell
+                const timeCell = cells[2];
+                const time = timeCell?.textContent.trim() || '';
+                
+                // Skip blank rows (rows with no name)
+                if (!name && !time) return;
+                
+                // Add row data
+                if (isFirstInStation && currentStation) {
+                    // First row of station - include station name
+                    wsData.push([currentStation, name, time, '', '', '', '', '']);
+                    isFirstInStation = false;
+                } else {
+                    // Subsequent rows - blank station column
+                    wsData.push(['', name, time, '', '', '', '', '']);
+                }
+            });
+            
+            hasData = true;
+        }
+
+        // Add spacing before reminder
+        wsData.push([]);
+        wsData.push([]);
+        
+        // Add reminder section
+        wsData.push(['ASK YOUR TL IF THERE\'S CORRECTION']);
+        wsData.push(['DON\'T BE LATE']);
+        wsData.push(['EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA']);
+        wsData.push(['PLEASE CALL STORE OR SEND MESSAGE IN OUR']);
+        wsData.push(['FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE']);
+        wsData.push(['REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST']);
+
+        // Create worksheet
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+        // Set column widths
+        ws['!cols'] = [
+            { wch: 18 },  // STATION
+            { wch: 22 },  // NAME
+            { wch: 20 },  // TIME
+            { wch: 10 },  // 15
+            { wch: 10 },  // 30
+            { wch: 10 },  // 60
+            { wch: 10 },  // 15
+            { wch: 22 }   // SIGNATURE
+        ];
+
+        // Set row heights
+        ws['!rows'] = [];
+        for (let i = 0; i < wsData.length; i++) {
+            ws['!rows'][i] = { hpt: 22 };
+        }
+        ws['!rows'][0] = { hpt: 28 }; // Day header
+        ws['!rows'][3] = { hpt: 28 }; // Column headers
+
+        // Apply cell styling
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!ws[cellAddress]) continue;
+                
+                if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                
+                // Style header row (row 3)
+                if (R === 3) {
+                    ws[cellAddress].s = {
+                        fill: { fgColor: { rgb: "FFD700" } },
+                        font: { bold: true, sz: 12 },
+                        alignment: { horizontal: "center", vertical: "center" },
+                        border: {
+                            top: { style: "thin" },
+                            bottom: { style: "thin" },
+                            left: { style: "thin" },
+                            right: { style: "thin" }
+                        }
+                    };
+                }
+                // Style station names (column A with value)
+                else if (C === 0 && R > 3 && ws[cellAddress].v && ws[cellAddress].v !== '') {
+                    const reminderStart = wsData.findIndex((row, idx) => idx > 3 && row[0] && row[0].includes('ASK YOUR TL'));
+                    if (reminderStart === -1 || R < reminderStart) {
+                        ws[cellAddress].s = {
+                            fill: { fgColor: { rgb: "FFD700" } },
+                            font: { bold: true, sz: 11 },
+                            alignment: { horizontal: "center", vertical: "center" },
+                            border: {
+                                top: { style: "thin" },
+                                bottom: { style: "thin" },
+                                left: { style: "thin" },
+                                right: { style: "thin" }
+                            }
+                        };
+                    }
+                }
+                // Style reminder section
+                else if (R > 3 && C === 0 && ws[cellAddress].v && 
+                        (ws[cellAddress].v.includes('ASK YOUR TL') || 
+                         ws[cellAddress].v.includes('DON\'T BE LATE') ||
+                         ws[cellAddress].v.includes('EXCESSIVE') ||
+                         ws[cellAddress].v.includes('PLEASE CALL') ||
+                         ws[cellAddress].v.includes('FOR NO CALL') ||
+                         ws[cellAddress].v.includes('REQUEST MUST'))) {
+                    ws[cellAddress].s = {
+                        fill: { fgColor: { rgb: "FFD700" } },
+                        font: { sz: 10 },
+                        alignment: { horizontal: "left", vertical: "center" }
+                    };
+                }
+            }
+        }
+
+        // Add worksheet to workbook
+        XLSX.utils.book_append_sheet(workbook, ws, day);
+    });
+
+    if (!hasData) {
+        alert('❌ No schedule data found. Please load the schedule first.');
+        return;
+    }
+
+    // Generate Excel file and download
+    const dateStr = scheduleStartDate || new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `weekly_schedule_${dateStr}.xlsx`, { cellStyles: true });
+    
+    alert('✅ Schedule exported to Excel!');
 };

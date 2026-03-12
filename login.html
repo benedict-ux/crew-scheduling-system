@@ -12,16 +12,23 @@
             box-sizing: border-box;
         }
 
+        html {
+            overflow: hidden;
+            height: 100%;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #DC0000 0%, #FFC700 100%);
             min-height: 100vh;
+            height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
             overflow: hidden;
             padding: 20px;
+            margin: 0;
         }
 
         /* Animated background circles */
@@ -205,13 +212,16 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(220, 0, 0, 0.95);
+            width: 100vw;
+            height: 100vh;
+            background: rgba(220, 0, 0, 0.98);
             z-index: 9999;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
+            text-align: center;
+            padding: 0;
+            margin: 0;
         }
 
         .loading-overlay.active {
@@ -221,11 +231,14 @@
         .loading-food {
             display: flex;
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: nowrap;
         }
 
         .food-item {
-            font-size: 50px;
+            font-size: clamp(40px, 10vw, 60px);
             animation: bounce-food 0.6s ease-in-out infinite;
         }
 
@@ -252,10 +265,10 @@
 
         .loading-text {
             color: white;
-            font-size: 24px;
+            font-size: clamp(18px, 5vw, 24px);
             font-weight: bold;
-            text-align: center;
             animation: pulse 1.5s ease-in-out infinite;
+            padding: 0 20px;
         }
 
         @keyframes pulse {
@@ -351,12 +364,48 @@
                 margin-top: 25px;
             }
             
-            .food-item {
-                font-size: 40px;
+            /* Loading animation - Tablet */
+            .loading-food {
+                gap: 18px;
+                margin-bottom: 25px;
+                justify-content: center;
+                width: 100%;
+            }
+        }
+        
+        /* Tablet Landscape (768px - 1024px) */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .login-container {
+                width: 90%;
+                max-width: 850px;
             }
             
-            .loading-text {
+            .login-left h1 {
+                font-size: 32px;
+            }
+            
+            .login-left .bee-icon {
+                font-size: 70px;
+            }
+            
+            .login-left p {
+                font-size: 17px;
+            }
+            
+            .login-left .branch {
                 font-size: 20px;
+            }
+            
+            .login-right h2 {
+                font-size: 28px;
+            }
+            
+            /* Loading animation - Tablet Landscape */
+            .loading-food {
+                gap: 22px;
+                margin-bottom: 28px;
+                justify-content: center;
+                width: 100%;
             }
         }
         
@@ -416,12 +465,12 @@
                 margin-top: 20px;
             }
             
-            .food-item {
-                font-size: 35px;
-            }
-            
-            .loading-text {
-                font-size: 18px;
+            /* Loading animation - Small Mobile */
+            .loading-food {
+                gap: 15px;
+                margin-bottom: 20px;
+                justify-content: center;
+                width: 100%;
             }
         }
     </style>

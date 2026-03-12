@@ -17,6 +17,67 @@ let currentCrewName = "";
 let currentCrewNickname = "";
 
 // ===============================
+// 2. NAVIGATION LOGIC (MOVED TO TOP)
+// ===============================
+window.showSection = function(section) {
+    console.log('showSection called with:', section);
+    
+    const personalDiv = document.getElementById('personalSection');
+    const globalDiv = document.getElementById('globalSection');
+    const requestDiv = document.getElementById('requestSection');
+
+    console.log('Elements found:', {
+        personalDiv: !!personalDiv,
+        globalDiv: !!globalDiv,
+        requestDiv: !!requestDiv
+    });
+
+    // Hide all sections first
+    if(personalDiv) {
+        personalDiv.style.display = 'none';
+        console.log('Personal section hidden');
+    }
+    if(globalDiv) {
+        globalDiv.style.display = 'none';
+        console.log('Global section hidden');
+    }
+    if(requestDiv) {
+        requestDiv.style.display = 'none';
+        console.log('Request section hidden');
+    }
+
+    // Show selected section
+    if (section === 'personal') {
+        console.log('Showing personal section');
+        if (personalDiv) {
+            personalDiv.style.display = 'block';
+            console.log('Personal section display set to block');
+        }
+        loadMyPersonalSchedule(currentCrewName);
+    } else if (section === 'global') {
+        console.log('Showing global section');
+        if (globalDiv) {
+            globalDiv.style.display = 'block';
+            console.log('Global section display set to block');
+        }
+        loadGlobalSchedule();
+    } else if (section === 'request') {
+        console.log('Showing request section');
+        if (requestDiv) {
+            requestDiv.style.display = 'block';
+            console.log('Request section display set to block');
+        }
+        loadMyRequestHistory();
+    }
+    
+    console.log('Final display states:', {
+        personal: personalDiv ? personalDiv.style.display : 'not found',
+        global: globalDiv ? globalDiv.style.display : 'not found',
+        request: requestDiv ? requestDiv.style.display : 'not found'
+    });
+};
+
+// ===============================
 // 1. AUTH & INITIALIZATION
 // ===============================
 onAuthStateChanged(auth, async (user) => {
@@ -35,15 +96,19 @@ onAuthStateChanged(auth, async (user) => {
         
         console.log("User logged in:", user.email, "UID:", user.uid);
         
-        const docSnap = await getDoc(doc(db, "users", user.uid));
-        if (docSnap.exists()) {
-            const userData = docSnap.data();
-            currentCrewName = userData.name;
+        try {
+            // Load user data and crew profile in parallel
+            const [docSnap] = await Promise.all([
+                getDoc(doc(db, "users", user.uid))
+            ]);
             
-            console.log("Crew name loaded:", currentCrewName);
-            
-            // Try to get crew profile to find nickname
-            try {
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                currentCrewName = userData.name;
+                
+                console.log("Crew name loaded:", currentCrewName);
+                
+                // Load crew profile to find nickname
                 const crewProfileQuery = query(
                     collection(db, "crewProfiles"),
                     where("name", "==", currentCrewName),
@@ -55,46 +120,36 @@ onAuthStateChanged(auth, async (user) => {
                     currentCrewNickname = crewProfile.nickname || "";
                     console.log("Crew nickname loaded:", currentCrewNickname);
                 }
-            } catch (e) {
-                console.log("Could not load crew profile:", e);
+                
+                // Default view
+                window.showSection('personal');
+                
+                // Test if showSection is accessible
+                console.log('showSection function is:', typeof window.showSection);
+                console.log('Testing showSection function...');
+                
+                // Add click listener to Full Team Schedule link for debugging
+                setTimeout(() => {
+                    const globalLink = document.querySelector('a[onclick*="global"]');
+                    console.log('Full Team Schedule link found:', !!globalLink);
+                    if (globalLink) {
+                        globalLink.addEventListener('click', function(e) {
+                            console.log('Full Team Schedule link clicked!');
+                        });
+                    }
+                }, 100);
+            } else {
+                console.error("No user document found for UID:", user.uid);
+                alert("❌ Your account is not set up properly. Please contact your manager.\n\nEmail: " + user.email);
             }
-            
-            // Default view
-            window.showSection('personal');
-        } else {
-            console.error("No user document found for UID:", user.uid);
-            alert("❌ Your account is not set up properly. Please contact your manager.\n\nEmail: " + user.email);
+        } catch (error) {
+            console.error("Error loading user data:", error);
+            alert("❌ Error loading your profile. Please try again.");
         }
     } else {
         window.location.href = "login.html";
     }
 });
-
-// ===============================
-// 2. NAVIGATION LOGIC
-// ===============================
-window.showSection = function(section) {
-    const personalDiv = document.getElementById('personalSection');
-    const globalDiv = document.getElementById('globalSection');
-    const requestDiv = document.getElementById('requestSection');
-
-    // Hide all
-    if(personalDiv) personalDiv.style.display = 'none';
-    if(globalDiv) globalDiv.style.display = 'none';
-    if(requestDiv) requestDiv.style.display = 'none';
-
-    // Show selected
-    if (section === 'personal') {
-        personalDiv.style.display = 'block';
-        loadMyPersonalSchedule(currentCrewName);
-    } else if (section === 'global') {
-        globalDiv.style.display = 'block';
-        loadGlobalSchedule();
-    } else if (section === 'request') {
-        requestDiv.style.display = 'block';
-        loadMyRequestHistory();
-    }
-};
 
 // ===============================
 // 3. SCHEDULE LOADERS

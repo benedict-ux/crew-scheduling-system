@@ -1027,8 +1027,9 @@ div[id^="warning-banner-"] {
     background: rgba(0, 0, 0, 0.5);
     z-index: 998;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s ease-out;
     pointer-events: none;
+    will-change: opacity;
 }
 
 .sidebar-overlay.active {
@@ -1052,17 +1053,21 @@ div[id^="warning-banner-"] {
         width: 280px;
         height: 100vh;
         z-index: 10001;
-        transition: left 0.3s ease;
+        transition: transform 0.2s ease-out;
+        transform: translateX(-100%);
         box-shadow: none;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
         padding-bottom: 20px;
+        will-change: transform;
+        backface-visibility: hidden;
     }
     
     .sidebar.active {
         left: 0;
+        transform: translateX(0);
         box-shadow: 4px 0 20px rgba(220, 0, 0, 0.3);
     }
     
@@ -1079,7 +1084,7 @@ div[id^="warning-banner-"] {
     
     .main {
         margin-left: 0;
-        padding: 80px 15px 15px 15px;
+        padding: 15px;
     }
     
     /* Mobile select dropdown fixes */
@@ -1120,7 +1125,7 @@ div[id^="warning-banner-"] {
     }
     
     .main {
-        padding: 70px 10px 10px 10px;
+        padding: 15px;
     }
 }
 
@@ -1532,7 +1537,7 @@ div[id^="warning-banner-"] {
 /* Mobile responsive for history page */
 @media screen and (max-width: 767px) {
     .main {
-        padding: 80px 10px 10px 10px !important;
+        padding: 15px !important;
     }
     
     .card {
@@ -1620,7 +1625,7 @@ div[id^="warning-banner-"] {
 
 @media screen and (max-width: 480px) {
     .main {
-        padding: 70px 8px 8px 8px !important;
+        padding: 15px !important;
     }
     
     .card {

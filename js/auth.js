@@ -6,6 +6,7 @@ import { db } from "./firebase-config.js";
 window.login = async function() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const loginBtn = document.getElementById("loginBtn");
 
     // Validate inputs
     if (!email || !password) {
@@ -13,10 +14,9 @@ window.login = async function() {
         return;
     }
 
-    // Show loading animation
-    if (window.showLoading) {
-        window.showLoading();
-    }
+    // Show loading spinner
+    loginBtn.classList.add("loading");
+    loginBtn.disabled = true;
 
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -27,29 +27,22 @@ window.login = async function() {
         if (docSnap.exists()) {
             const role = docSnap.data().role;
 
-            // Add 3 second delay to show the cool loading animation
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Keep loading animation visible while redirecting
+            // Redirect based on role
             if (role === "manager") {
-                // Replace history to prevent back button from going to login
                 window.location.replace("manager.html");
             } else {
-                // Replace history to prevent back button from going to login
                 window.location.replace("crew.html");
             }
         } else {
-            // Hide loading if user document not found
-            if (window.hideLoading) {
-                window.hideLoading();
-            }
+            // Hide loading spinner
+            loginBtn.classList.remove("loading");
+            loginBtn.disabled = false;
             alert("❌ User account not found. Please contact your manager.");
         }
     } catch (error) {
-        // Hide loading on error
-        if (window.hideLoading) {
-            window.hideLoading();
-        }
+        // Hide loading spinner
+        loginBtn.classList.remove("loading");
+        loginBtn.disabled = false;
         
         // Better error messages
         if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {

@@ -8,147 +8,43 @@
     <!-- SheetJS library for Excel export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
+        /* ========================================
+           COMPREHENSIVE RESPONSIVE DESIGN
+           ======================================== */
+        
+        /* PRINT STYLES */
         @media print {
             .sidebar, .no-print, .mobile-menu-toggle { display: none !important; }
-            body { 
-                margin: 0;
-                padding: 0;
-            }
-            .main { 
-                margin: 0; 
-                padding: 0;
-                width: 100%;
-            }
-            
-            #scheduleContainer {
-                padding: 0 !important;
-                margin: 0 !important;
-                max-width: 100% !important;
-            }
-            
-            .day-container {
-                page-break-after: always;
-                page-break-inside: avoid;
-                padding: 8mm 8mm !important;
-                margin: 0 !important;
-                box-shadow: none !important;
-                min-height: 100vh;
-                max-height: 100vh;
-                box-sizing: border-box;
-                overflow: hidden;
-            }
-            
-            /* Remove page break after the last day (Sunday) */
-            .day-container:last-child {
-                page-break-after: avoid !important;
-            }
-            
-            .day-container h2 {
-                font-size: 16px !important;
-                margin: 0 0 2px 0 !important;
-                padding: 4px 0 !important;
-                border-bottom: 2px solid #DC0000 !important;
-                text-align: center;
-                color: #DC0000;
-            }
-            
-            .day-container h3 {
-                font-size: 11px !important;
-                margin: 0 0 5px 0 !important;
-                padding: 0 !important;
-                text-align: center;
-                color: #666;
-            }
-            
-            .day-container table {
-                font-size: 9px !important;
-                width: 100% !important;
-                margin: 0 0 5px 0 !important;
-                border-collapse: collapse !important;
-            }
-            
-            .day-container table th {
-                padding: 4px 2px !important;
-                font-size: 9px !important;
-                line-height: 1.1 !important;
-                background: #DC0000 !important;
-                color: white !important;
-                border: 1px solid #666 !important;
-                font-weight: bold !important;
-            }
-            
-            .day-container table td {
-                padding: 2px 1px !important;
-                font-size: 8px !important;
-                line-height: 1.1 !important;
-                border: 1px solid #999 !important;
-                vertical-align: middle !important;
-            }
-            
-            .day-container select {
-                font-size: 8px !important;
-                padding: 1px !important;
-                border: none !important;
-                background: transparent !important;
-                appearance: none !important;
-                -webkit-appearance: none !important;
-                -moz-appearance: none !important;
-                font-weight: bold !important;
-                width: 100%;
-            }
-            
-            .day-container tbody tr.blank-row td {
-                padding: 2px 1px !important;
-                border: 1px solid #ccc !important;
-                min-height: 12px !important;
-                height: 12px !important;
-            }
-            
-            /* Make blank input fields print properly */
-            .blank-input {
-                border: none !important;
-                background: transparent !important;
-                font-size: 8px !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-                font-family: inherit !important;
-                color: #000 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            
-            .reminder-box {
-                margin-top: 4px !important;
-                padding: 4px 6px !important;
-                font-size: 7px !important;
-                line-height: 1.3 !important;
-                background: #fff3cd !important;
-                border: 1px solid #ffc107 !important;
-                border-radius: 2px !important;
-                page-break-inside: avoid !important;
-                text-align: left !important;
-            }
-            
-            .reminder-box p {
-                margin: 1.5px 0 !important;
-                line-height: 1.3 !important;
-                text-align: left !important;
-            }
-            
-            .save-button-container {
-                display: none !important;
-            }
+            body { margin: 0; padding: 0; }
+            .main { margin: 0; padding: 0; width: 100%; }
+            #scheduleContainer { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+            .day-container { page-break-after: always; page-break-inside: avoid; padding: 8mm !important; margin: 0 !important; box-shadow: none !important; min-height: 100vh; max-height: 100vh; box-sizing: border-box; overflow: hidden; }
+            .day-container:last-child { page-break-after: avoid !important; }
+            .day-container h2 { font-size: 16px !important; margin: 0 0 2px 0 !important; padding: 4px 0 !important; border-bottom: 2px solid #DC0000 !important; text-align: center; color: #DC0000; }
+            .day-container h3 { font-size: 11px !important; margin: 0 0 5px 0 !important; padding: 0 !important; text-align: center; color: #666; }
+            .day-container table { font-size: 9px !important; width: 100% !important; margin: 0 0 5px 0 !important; border-collapse: collapse !important; }
+            .day-container table th { padding: 4px 2px !important; font-size: 9px !important; line-height: 1.1 !important; background: #DC0000 !important; color: white !important; border: 1px solid #666 !important; font-weight: bold !important; }
+            .day-container table td { padding: 2px 1px !important; font-size: 8px !important; line-height: 1.1 !important; border: 1px solid #999 !important; vertical-align: middle !important; }
+            .day-container select { font-size: 8px !important; padding: 1px !important; border: none !important; background: transparent !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; font-weight: bold !important; width: 100%; }
+            .day-container tbody tr.blank-row td { padding: 2px 1px !important; border: 1px solid #ccc !important; min-height: 12px !important; height: 12px !important; }
+            .blank-input { border: none !important; background: transparent !important; font-size: 8px !important; padding: 0 !important; margin: 0 !important; width: 100% !important; font-family: inherit !important; color: #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .reminder-box { margin-top: 4px !important; padding: 4px 6px !important; font-size: 7px !important; line-height: 1.3 !important; background: #fff3cd !important; border: 1px solid #ffc107 !important; border-radius: 2px !important; page-break-inside: avoid !important; text-align: left !important; }
+            .reminder-box p { margin: 1.5px 0 !important; line-height: 1.3 !important; text-align: left !important; }
+            .save-button-container { display: none !important; }
         }
         
+        /* DEFAULT DESKTOP STYLES */
         #scheduleContainer {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
         
-        /* Landscape orientation banner - hidden by default */
         .landscape-banner {
             display: none;
             background: linear-gradient(135deg, #FFC700 0%, #FFB000 100%);
@@ -162,12 +58,69 @@
         }
         
         @keyframes pulse-banner {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.02);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .day-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 0 auto 25px auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e0e0e0;
+            width: 100%;
+            max-width: 800px;
+        }
+        
+        .day-container h2 {
+            color: #DC0000;
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-align: center;
+        }
+        
+        .day-container h3 {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .day-container table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            table-layout: fixed;
+        }
+        
+        .day-container table th {
+            background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+            color: white;
+            padding: 12px 8px;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid #999;
+        }
+        
+        .day-container table td {
+            padding: 10px 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+            vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .day-container select {
+            width: 100%;
+            max-width: 100%;
+            padding: 6px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
         
         .print-button {
@@ -185,7 +138,6 @@
             background: #218838;
         }
         
-        /* Ensure hamburger button is always clickable and above everything */
         .mobile-menu-toggle {
             z-index: 10010 !important;
             pointer-events: auto !important;
@@ -195,138 +147,388 @@
             cursor: pointer !important;
         }
         
-        /* Portrait mode warning - REMOVED, too intrusive */
-        .rotate-message {
-            display: none !important;
+        /* Desktop column widths - balanced for all content */
+        .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 15% !important; min-width: 100px; }
+        .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 20% !important; min-width: 120px; }
+        .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 17% !important; min-width: 110px; }
+        .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6% !important; min-width: 40px; }
+        .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6% !important; min-width: 40px; }
+        .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6% !important; min-width: 40px; }
+        .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6% !important; min-width: 40px; }
+        .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 24% !important; min-width: 150px; }
+        
+        /* UNIVERSAL FIX FOR ALL DEVICES */
+        @media screen and (max-width: 767px) {
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18% !important; }
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 20% !important; }
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 62% !important; }
         }
         
-        .rotate-message h2 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .rotate-message p {
-            font-size: 18px;
-            margin-bottom: 30px;
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .rotate-message img {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .rotate-icon {
-            font-size: 60px;
-            animation: rotate 2s infinite;
-            position: relative;
-            z-index: 1;
-        }
-        
-        @keyframes rotate {
-            0%, 100% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-        }
-        
-        /* Show rotate message on mobile portrait */
-        @media screen and (max-width: 768px) and (max-height: 500px) {
-            /* This is landscape - hide rotate message */
-            .rotate-message {
-                display: none;
+        /* ========================================
+           LANDSCAPE ORIENTATION - ALL DEVICES
+           ======================================== */
+        @media screen and (orientation: landscape) {
+            .mobile-menu-toggle {
+                display: flex !important;
+                z-index: 10005;
             }
-        }
-        
-        /* Removed intrusive portrait blocking - users can navigate in portrait mode */
-        
-        /* Mobile Portrait - Hide extra columns, show only STATION, NAME, TIME */
-        @media screen and (max-width: 768px) and (orientation: portrait) {
-            /* Show landscape banner in portrait mode */
-            .landscape-banner {
-                display: block !important;
+            
+            .sidebar {
+                left: -280px;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.active {
+                left: 0;
+            }
+            
+            .main {
+                margin-left: 0 !important;
+                padding: 15px !important;
+                transition: margin-left 0.3s ease;
+            }
+            
+            .sidebar.active ~ .main {
+                margin-left: 280px !important;
             }
             
             #scheduleContainer {
-                padding: 5px !important;
+                padding: 10px;
+                max-width: 100%;
             }
             
             .day-container {
-                padding: 10px !important;
+                padding: 15px;
                 margin-bottom: 20px;
             }
             
-            .day-container h2 {
-                font-size: 18px !important;
-                margin-bottom: 5px !important;
+            .day-container > div[style*="overflow-x"] {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
             }
-            
-            .day-container h3 {
-                font-size: 14px !important;
-                margin-bottom: 10px !important;
-            }
-            
-            /* Hide columns 4, 5, 6, 7, 8 (15, 30, 60, 15, SIGNATURE) in portrait */
-            .day-container table thead tr th:nth-child(4),
-            .day-container table thead tr th:nth-child(5),
-            .day-container table thead tr th:nth-child(6),
-            .day-container table thead tr th:nth-child(7),
-            .day-container table thead tr th:nth-child(8),
-            .day-container table tbody tr td:nth-child(4),
-            .day-container table tbody tr td:nth-child(5),
-            .day-container table tbody tr td:nth-child(6),
-            .day-container table tbody tr td:nth-child(7),
-            .day-container table tbody tr td:nth-child(8) {
-                display: none !important;
-            }
-            
-            /* Adjust remaining columns */
+        }
+        
+        /* ========================================
+           DESKTOP LANDSCAPE (1200px+)
+           ======================================== */
+        @media screen and (orientation: landscape) and (min-width: 1200px) {
             .day-container table {
-                font-size: 14px !important;
-                width: 100% !important;
-                table-layout: fixed !important;
-                margin: 0 !important;
+                font-size: 16px;
             }
             
             .day-container table th,
             .day-container table td {
-                padding: 8px 4px !important;
-                font-size: 13px !important;
-                word-wrap: break-word !important;
-                text-align: center !important;
-                vertical-align: middle !important;
-            }
-            
-            /* Column widths for portrait */
-            .day-container table th:nth-child(1),
-            .day-container table td:nth-child(1) {
-                width: 20% !important;
-                font-size: 10px !important;
-                padding: 8px 2px !important;
-            }
-            
-            .day-container table th:nth-child(2),
-            .day-container table td:nth-child(2) {
-                width: 32% !important;
-                padding: 8px 3px !important;
-            }
-            
-            .day-container table th:nth-child(3),
-            .day-container table td:nth-child(3) {
-                width: 48% !important;
-                font-size: 11px !important;
-                padding: 8px 4px !important;
+                padding: 12px 10px;
+                font-size: 16px;
             }
             
             .day-container select {
-                font-size: 12px !important;
-                padding: 5px 2px !important;
-                width: 100% !important;
-                max-width: 100% !important;
-                box-sizing: border-box !important;
+                font-size: 16px;
+                padding: 8px;
+            }
+            
+            .day-container h2 {
+                font-size: 26px;
+            }
+            
+            .day-container h3 {
+                font-size: 16px;
+            }
+        }
+        
+        /* ========================================
+           LAPTOP LANDSCAPE (768px - 1199px)
+           ======================================== */
+        @media screen and (orientation: landscape) and (min-width: 768px) and (max-width: 1199px) {
+            .day-container table {
+                font-size: 13px;
+            }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 9px 7px;
+                font-size: 13px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            
+            .day-container select {
+                font-size: 13px;
+                padding: 5px;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .day-container h2 {
+                font-size: 22px;
+            }
+            
+            .day-container h3 {
+                font-size: 14px;
+            }
+            
+            /* Adjust column widths - balanced */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 15%; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 20%; } /* NAME */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 17%; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6%; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6%; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6%; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6%; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 24%; } /* SIGNATURE */
+        }
+        
+        /* ========================================
+           TABLET LANDSCAPE (481px - 767px)
+           ======================================== */
+        @media screen and (orientation: landscape) and (min-width: 481px) and (max-width: 767px) {
+            .day-container table {
+                font-size: 11px;
+                width: 100%;
+                table-layout: fixed;
+            }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 7px 5px;
+                font-size: 11px;
+                border: 1px solid #ddd;
+                text-align: center;
+                vertical-align: middle;
+                overflow: hidden;
+            }
+            
+            .day-container select {
+                font-size: 11px;
+                padding: 3px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .day-container h2 {
+                font-size: 20px;
+            }
+            
+            .day-container h3 {
+                font-size: 12px;
+            }
+            
+            /* Adjust column widths - balanced */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18%; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 16%; } /* NAME - smaller */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 14%; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6%; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6%; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6%; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6%; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 22%; } /* SIGNATURE */
+        }
+        
+        /* ========================================
+           MOBILE LANDSCAPE (320px - 480px)
+           ======================================== */
+        @media screen and (orientation: landscape) and (max-width: 480px) {
+            .day-container {
+                padding: 10px;
+            }
+            
+            .day-container table {
+                font-size: 9px;
+                width: 100%;
+                table-layout: fixed;
+            }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 5px 3px;
+                font-size: 9px;
+                border: 1px solid #ddd;
+                text-align: center;
+                vertical-align: middle;
+                overflow: hidden;
+            }
+            
+            .day-container select {
+                font-size: 9px;
+                padding: 2px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+            
+            .day-container h2 {
+                font-size: 18px;
+            }
+            
+            .day-container h3 {
+                font-size: 11px;
+            }
+            
+            /* Adjust column widths - balanced */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18%; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 16%; } /* NAME - smaller */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 14%; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6%; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6%; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6%; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6%; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 22%; } /* SIGNATURE */
+        }
+        
+        /* ========================================
+           PORTRAIT ORIENTATION - ALL DEVICES
+           ======================================== */
+        @media screen and (orientation: portrait) {
+            .mobile-menu-toggle {
+                display: flex !important;
+            }
+            
+            .sidebar {
+                left: -280px;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.active {
+                left: 0;
+            }
+            
+            .main {
+                margin-left: 0 !important;
+                padding: 15px !important;
+            }
+        }
+        
+        /* ========================================
+           DESKTOP PORTRAIT (1200px+)
+           ======================================== */
+        @media screen and (orientation: portrait) and (min-width: 1200px) {
+            .day-container table {
+                font-size: 16px;
+            }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 12px 10px;
+                font-size: 16px;
+            }
+            
+            .day-container select {
+                font-size: 16px;
+                padding: 8px;
+            }
+        }
+        
+        /* ========================================
+           TABLET PORTRAIT (768px - 1199px)
+           ======================================== */
+        @media screen and (orientation: portrait) and (min-width: 768px) and (max-width: 1199px) {
+            #scheduleContainer {
+                padding: 15px;
+            }
+            
+            .day-container {
+                padding: 20px;
+            }
+            
+            .day-container table {
+                font-size: 14px;
+            }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 10px 8px;
+                font-size: 14px;
+            }
+            
+            .day-container select {
+                font-size: 14px;
+                padding: 6px;
+            }
+            
+            .landscape-banner {
+                display: block !important;
+            }
+        }
+        
+        /* ========================================
+           MOBILE PORTRAIT (320px - 767px)
+           ======================================== */
+        @media screen and (orientation: portrait) and (max-width: 767px) {
+            #scheduleContainer {
+                padding: 5px;
+            }
+            
+            .day-container {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+            
+            .day-container h2 {
+                font-size: 20px;
+            }
+            
+            .day-container h3 {
+                font-size: 12px;
+            }
+            
+            .landscape-banner {
+                display: block !important;
+            }
+            
+            /* Keep table structure - show only STATION, NAME, TIME */
+            .day-container table {
+                font-size: 13px;
+                width: 100%;
+                table-layout: auto;
+                border-collapse: collapse;
+            }
+            
+            .day-container table th {
+                background: linear-gradient(135deg, #DC0000 0%, #B00000 100%);
+                color: white;
+                padding: 10px 6px;
+                font-size: 13px;
+                font-weight: 600;
+                border: 1px solid #999;
+                text-align: center;
+                white-space: normal;
+                word-wrap: break-word;
+            }
+            
+            .day-container table td {
+                padding: 10px 6px;
+                font-size: 13px;
+                border: 1px solid #ddd;
+                text-align: center;
+                vertical-align: middle;
+            }
+            
+            /* Hide columns 4,5,6,7,8 - keep only STATION, NAME, TIME */
+            .day-container table th:nth-child(4),
+            .day-container table th:nth-child(5),
+            .day-container table th:nth-child(6),
+            .day-container table th:nth-child(7),
+            .day-container table th:nth-child(8),
+            .day-container table td:nth-child(4),
+            .day-container table td:nth-child(5),
+            .day-container table td:nth-child(6),
+            .day-container table td:nth-child(7),
+            .day-container table td:nth-child(8) {
+                display: none !important;
+            }
+            
+            /* Adjust remaining visible columns - STATION, NAME, TIME only */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18% !important; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 20% !important; } /* NAME - very small */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 62% !important; } /* TIME - maximum width */
+            
+            .day-container select {
+                font-size: 13px;
+                padding: 6px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
             
             .save-button-container {
@@ -358,7 +560,6 @@
                 text-align: left !important;
             }
             
-            /* Stack reminder and button vertically on mobile */
             .day-container > div[style*="display: flex"] {
                 flex-direction: column !important;
                 align-items: stretch !important;
@@ -369,95 +570,141 @@
                 width: 100% !important;
             }
             
-            /* Adjust card padding */
             .card.no-print {
                 padding: 15px 10px !important;
             }
         }
         
-        /* Mobile Landscape - Show all columns with horizontal scroll */
-        /* Apply to ALL devices in landscape orientation */
-        @media screen and (orientation: landscape) and (max-height: 600px) {
-            /* Allow sidebar to work normally - removed forced hiding */
-            
-            .main {
-                padding: 10px !important;
-            }
-            
-            #scheduleContainer {
-                padding: 8px;
-                overflow-x: auto;
-            }
-            
+        /* ========================================
+           SMALL MOBILE PORTRAIT (320px - 480px)
+           ======================================== */
+        @media screen and (orientation: portrait) and (max-width: 480px) {
             .day-container {
-                padding: 12px;
-                margin-bottom: 15px;
+                padding: 10px;
             }
             
             .day-container h2 {
-                font-size: 16px !important;
+                font-size: 18px;
             }
             
             .day-container h3 {
-                font-size: 12px !important;
-            }
-            
-            /* Wrapper for horizontal scrolling */
-            .day-container > div {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
+                font-size: 11px;
             }
             
             .day-container table {
-                font-size: 11px !important;
-                min-width: 700px !important;
+                font-size: 11px;
             }
             
             .day-container table th,
             .day-container table td {
-                padding: 8px 6px !important;
-                font-size: 11px !important;
-                white-space: nowrap;
+                padding: 6px 3px;
+                font-size: 11px;
             }
             
             .day-container select {
-                font-size: 11px !important;
-                padding: 4px !important;
-                min-width: 80px;
+                font-size: 11px;
+                padding: 3px;
+            }
+        }
+        
+        /* ========================================
+           IPHONE SE SPECIFIC (375px and smaller)
+           ======================================== */
+        @media screen and (max-width: 375px) {
+            #scheduleContainer {
+                padding: 5px;
             }
             
-            .save-button-container button {
-                padding: 8px 16px !important;
-                font-size: 12px !important;
+            .day-container {
+                padding: 8px;
+                margin: 0 auto 10px auto;
+                max-width: 100%;
             }
             
-            .print-button {
-                padding: 6px 12px !important;
-                font-size: 12px !important;
+            .day-container h2 {
+                font-size: 16px;
+                margin-bottom: 5px;
             }
             
-            .reminder-box {
-                font-size: 9px !important;
-                padding: 8px !important;
+            .day-container h3 {
+                font-size: 10px;
+                margin-bottom: 10px;
             }
             
-            .reminder-box p {
-                font-size: 9px !important;
+            /* Portrait - only show STATION, NAME, TIME */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 20% !important; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 22% !important; } /* NAME */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 58% !important; } /* TIME - wider */
+            
+            .day-container table {
+                font-size: 10px;
             }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 4px 2px;
+                font-size: 10px;
+            }
+            
+            .day-container select {
+                font-size: 10px;
+                padding: 2px;
+            }
+        }
+        
+        /* ========================================
+           IPHONE SE LANDSCAPE (667x375px)
+           ======================================== */
+        @media screen and (orientation: landscape) and (max-height: 375px) {
+            #scheduleContainer {
+                padding: 3px;
+            }
+            
+            .day-container {
+                padding: 6px;
+                margin: 0 auto 8px auto;
+            }
+            
+            .day-container h2 {
+                font-size: 14px;
+                margin-bottom: 3px;
+            }
+            
+            .day-container h3 {
+                font-size: 9px;
+                margin-bottom: 8px;
+            }
+            
+            .day-container table {
+                font-size: 8px;
+            }
+            
+            .day-container table th,
+            .day-container table td {
+                padding: 3px 1px;
+                font-size: 8px;
+            }
+            
+            .day-container select {
+                font-size: 8px;
+                padding: 1px;
+            }
+            
+            /* Landscape - show all columns but smaller */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18% !important; } /* STATION - wider */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 16% !important; } /* NAME - wider */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 14% !important; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 5% !important; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 5% !important; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 5% !important; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 5% !important; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 18% !important; } /* SIGNATURE - smaller */
         }
     </style>
 </head>
 <body onload="loadSchedule()">
 
-<!-- Rotate Device Message for Portrait Mode -->
-<div class="rotate-message">
-    <img src="assets/jollibee-logo.png" alt="Jollibee" style="width: 100px; margin-bottom: 20px;">
-    <h2>Please Rotate Your Device</h2>
-    <p>For the best experience, please use landscape mode</p>
-    <div class="rotate-icon">📱 → 🔄</div>
-</div>
-
-<!-- Mobile Menu Toggle - MUST be after rotate-message in DOM -->
+<!-- Mobile Menu Toggle -->
 <button class="mobile-menu-toggle" id="mobileMenuBtn">
     <span></span>
     <span></span>
@@ -496,7 +743,7 @@
         <button class="print-button" onclick="loadSchedule()" style="background: #007bff;">🔄 Refresh</button>
     </div>
 
-    <div id="scheduleContainer" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 20px; color: #666; font-size: 16px;">
+    <div id="scheduleContainer" style="min-height: 200px; padding: 20px; color: #666; font-size: 16px; text-align: center;">
         Loading schedule...
     </div>
 </div>
@@ -531,42 +778,32 @@
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        // Hamburger button opens/closes sidebar
         const menuToggle = document.querySelector('.mobile-menu-toggle');
-        console.log('Menu toggle button found:', menuToggle);
         
         if (menuToggle) {
             menuToggle.addEventListener('click', function(e) {
-                console.log('Hamburger button clicked!');
                 e.stopPropagation();
                 e.preventDefault();
                 toggleSidebar();
             });
             
-            // Also try touch events for mobile
             menuToggle.addEventListener('touchstart', function(e) {
-                console.log('Hamburger button touched!');
                 e.stopPropagation();
                 e.preventDefault();
                 toggleSidebar();
             }, { passive: false });
         }
         
-        // Close sidebar on orientation change (but don't hide the button)
         window.addEventListener('orientationchange', function() {
-            console.log('Orientation changed - closing sidebar');
             closeSidebar();
         });
         
-        // Close sidebar on window resize
         window.addEventListener('resize', function() {
-            // Just close the sidebar, don't hide controls
             if (document.getElementById('sidebar').classList.contains('active')) {
                 closeSidebar();
             }
         });
         
-        // Clicking overlay closes sidebar
         const overlay = document.getElementById('sidebarOverlay');
         if (overlay) {
             overlay.addEventListener('click', function(e) {
@@ -575,33 +812,21 @@
             });
         }
         
-        // Clicking sidebar links closes sidebar on mobile
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
             const sidebarLinks = sidebar.querySelectorAll('a');
             sidebarLinks.forEach(link => {
                 link.addEventListener('click', function() {
-                    // Small delay to allow navigation to complete
                     setTimeout(closeSidebar, 100);
                 });
             });
         }
         
-        // Prevent clicks on dropdowns from closing sidebar
         document.addEventListener('click', function(e) {
             if (e.target.tagName === 'SELECT' || e.target.closest('select')) {
                 e.stopPropagation();
             }
         });
-        
-        // Debug: Log what element is actually receiving clicks in the button area
-        document.addEventListener('click', function(e) {
-            const rect = menuToggle?.getBoundingClientRect();
-            if (rect && e.clientX >= rect.left && e.clientX <= rect.right && 
-                e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                console.log('Click in button area, but target is:', e.target);
-            }
-        }, true);
     });
 </script>
 

@@ -82,6 +82,29 @@ window.showSection = function(section) {
 // ===============================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // Check if user has been deleted (optional - handle permission errors gracefully)
+        try {
+            const deletedUserDoc = await getDoc(doc(db, "deletedUsers", user.uid));
+            if (deletedUserDoc.exists()) {
+                await signOut(auth);
+                alert("❌ This account has been deactivated. Please contact your manager.");
+                window.location.replace("login.html");
+                return;
+            }
+            
+            // Also check by email as fallback
+            const deletedByEmailDoc = await getDoc(doc(db, "deletedUsers", user.email));
+            if (deletedByEmailDoc.exists()) {
+                await signOut(auth);
+                alert("❌ This account has been deactivated. Please contact your manager.");
+                window.location.replace("login.html");
+                return;
+            }
+        } catch (deletedUserError) {
+            // Ignore permission errors for deletedUsers collection - it may not exist yet
+            console.log("Could not check deleted users (this is normal if collection doesn't exist):", deletedUserError.message);
+        }
+        
         // Prevent back button - if user tries to go back, redirect to current page
         const currentPage = window.location.href;
         

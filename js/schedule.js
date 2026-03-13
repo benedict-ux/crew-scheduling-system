@@ -126,8 +126,8 @@ window.loadSchedule = async function () {
                 return true;
             });
 
-            // Group shifts by station - EXACT ORDER FROM TEMPLATE
-            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"];
+            // Group shifts by station - EXACT ORDER FROM TEMPLATE WITH 3 MID STATIONS
+            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING", "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"];
             const shiftsByStation = {};
             
             fullScheduleData[day].forEach((shift, shiftIndex) => {
@@ -137,19 +137,60 @@ window.loadSchedule = async function () {
                 shiftsByStation[shift.station].push({ ...shift, originalIndex: shiftIndex });
             });
             
-            // Sort shifts within each station: OPENING first, then CLOSING
+            // Sort shifts within each station: OPENING first, then MID, then CLOSING
             Object.keys(shiftsByStation).forEach(station => {
                 shiftsByStation[station].sort((a, b) => {
                     const typeA = (a.type || "").toUpperCase();
                     const typeB = (b.type || "").toUpperCase();
                     
+                    if (typeA === "OPENING" && typeB === "MID") return -1;
                     if (typeA === "OPENING" && typeB === "CLOSING") return -1;
+                    if (typeA === "MID" && typeB === "OPENING") return 1;
+                    if (typeA === "MID" && typeB === "CLOSING") return -1;
                     if (typeA === "CLOSING" && typeB === "OPENING") return 1;
+                    if (typeA === "CLOSING" && typeB === "MID") return 1;
                     
                     // If same type, sort by start time
                     return a.startTime.localeCompare(b.startTime);
                 });
             });
+
+            // Add 3 separate MID stations
+            // 1. Service MID (between CTR and DINING)
+            if (!shiftsByStation["MID"]) {
+                shiftsByStation["MID"] = [{
+                    station: "MID",
+                    type: "MID",
+                    startTime: "12:00PM",
+                    endTime: "8:00PM",
+                    crewName: "Unassigned",
+                    originalIndex: -1
+                }];
+            }
+            
+            // 2. Dining MID (after DINING)
+            if (!shiftsByStation["MID-DINING"]) {
+                shiftsByStation["MID-DINING"] = [{
+                    station: "MID-DINING",
+                    type: "MID",
+                    startTime: "12:00PM",
+                    endTime: "8:00PM",
+                    crewName: "Unassigned",
+                    originalIndex: -2
+                }];
+            }
+            
+            // 3. Kitchen MID (after FRY)
+            if (!shiftsByStation["MID-KITCHEN"]) {
+                shiftsByStation["MID-KITCHEN"] = [{
+                    station: "MID-KITCHEN",
+                    type: "MID",
+                    startTime: "12:00PM",
+                    endTime: "8:00PM",
+                    crewName: "Unassigned",
+                    originalIndex: -3
+                }];
+            }
 
             container.innerHTML += `
                 <div id="day-${day}" class="day-container">
@@ -188,12 +229,17 @@ window.loadSchedule = async function () {
                                         dropdownCrew = crewData;
                                     }
                                     
+                                    // Generate unique ID for Mid shifts
+                                    const shiftId = shift.originalIndex === -1 ? 
+                                        `mid-${day}-${stationName}` : 
+                                        `shift-${day}-${shift.originalIndex}`;
+                                    
                                     // Main row + 1 blank row
                                     return `
                                         <tr>
                                             ${idx === 0 ? `<td rowspan="${shifts.length * 2}" style="font-weight: bold; vertical-align: top; background: #f8f9fa;">${stationName}</td>` : ''}
                                             <td>
-                                                <select id="shift-${day}-${shift.originalIndex}" 
+                                                <select id="${shiftId}" 
                                                     onchange="updateDropdownsForDay('${day}')" 
                                                     onfocus="this.dataset.oldValue = this.value"
                                                     onkeydown="preventArrowKeyChange(event, this)">
@@ -230,8 +276,8 @@ window.loadSchedule = async function () {
                     </div>
                     
                     <div style="display: flex; justify-content: flex-start; align-items: flex-start; margin-top: 15px; gap: 20px; flex-wrap: wrap;">
-                        <div class="reminder-box" style="flex: 0 0 auto; min-width: 250px; max-width: 400px; margin: 0; text-align: left;">
-                            <p style="font-weight: bold; margin: 0 0 8px 0; text-align: left;">ASK YOUR TL IF THERE'S CORRECTION</p>
+                        <div class="reminder-box" style="flex: 0 0 auto; min-width: 250px; max-width: 400px; margin: 0; text-align: left; border: 3px solid #FFC700; background: #fff9e6;">
+                            <p style="font-weight: bold; margin: 0 0 8px 0; text-align: left; color: #DC0000;">ASK YOUR TL IF THERE'S CORRECTION</p>
                             <p style="margin: 3px 0; text-align: left;">DON'T BE LATE</p>
                             <p style="margin: 3px 0; text-align: left;">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</p>
                             <p style="margin: 3px 0; text-align: left;">PLEASE CALL STORE OR SEND MESSAGE IN OUR</p>
@@ -276,13 +322,30 @@ window.preventArrowKeyChange = function(event, selectElement) {
 window.updateDropdownsForDay = function(day) {
     // Get current assignments from the dropdowns (not from database)
     const currentAssignments = [];
+    
+    // Handle regular shifts
     fullScheduleData[day].forEach((shift, shiftIndex) => {
         const selectElement = document.getElementById(`shift-${day}-${shiftIndex}`);
         if (selectElement) {
             currentAssignments.push({
                 index: shiftIndex,
                 crewName: selectElement.value,
-                station: shift.station
+                station: shift.station,
+                type: 'regular'
+            });
+        }
+    });
+    
+    // Handle all 3 Mid shifts
+    const midStations = ["MID", "MID-DINING", "MID-KITCHEN"];
+    midStations.forEach(midStation => {
+        const midSelectElement = document.getElementById(`mid-${day}-${midStation}`);
+        if (midSelectElement) {
+            currentAssignments.push({
+                index: midStation === "MID" ? -1 : (midStation === "MID-DINING" ? -2 : -3),
+                crewName: midSelectElement.value,
+                station: midStation,
+                type: 'mid'
             });
         }
     });
@@ -386,7 +449,10 @@ window.updateDropdownsForDay = function(day) {
     
     // Update each dropdown based on station type
     currentAssignments.forEach(assignment => {
-        const selectElement = document.getElementById(`shift-${day}-${assignment.index}`);
+        const selectId = assignment.type === 'mid' ? 
+            `mid-${day}-${assignment.station}` : 
+            `shift-${day}-${assignment.index}`;
+        const selectElement = document.getElementById(selectId);
         if (!selectElement) return;
         
         const currentValue = selectElement.value;

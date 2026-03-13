@@ -1,16 +1,38 @@
 import { auth, db } from "./firebase-config.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { 
-    collection, getDocs, addDoc, updateDoc, doc, deleteDoc,
+    collection, getDocs, addDoc, updateDoc, doc, deleteDoc, setDoc, getDoc,
     query, where, orderBy, limit, serverTimestamp, arrayUnion 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ===============================
 // 1. AUTH & INITIAL LOAD
 // ===============================
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
+        // Check if user has been deleted (optional - handle permission errors gracefully)
+        try {
+            const deletedUserDoc = await getDoc(doc(db, "deletedUsers", user.uid));
+            if (deletedUserDoc.exists()) {
+                await signOut(auth);
+                alert("❌ This account has been deactivated. Please contact your manager.");
+                window.location.replace("login.html");
+                return;
+            }
+            
+            // Also check by email as fallback
+            const deletedByEmailDoc = await getDoc(doc(db, "deletedUsers", user.email));
+            if (deletedByEmailDoc.exists()) {
+                await signOut(auth);
+                alert("❌ This account has been deactivated. Please contact your manager.");
+                window.location.replace("login.html");
+                return;
+            }
+        } catch (deletedUserError) {
+            // Ignore permission errors for deletedUsers collection - it may not exist yet
+            console.log("Could not check deleted users (this is normal if collection doesn't exist):", deletedUserError.message);
+        }
+        
         // Prevent back button - if user tries to go back, redirect to current page
         const currentPage = window.location.href;
         
@@ -282,6 +304,8 @@ window.updateRoleType = async function(crewId, roleType) {
             roleType: roleType
         });
         console.log("Role type updated!");
+        // Refresh the crew profiles display
+        loadCrew();
     } catch (e) {
         console.error("Error updating role type:", e);
         alert("Update failed.");
@@ -323,6 +347,8 @@ window.updateAttendancePriority = async function(crewId, priority) {
             attendancePriority: priorityValue
         });
         console.log("Attendance priority updated!");
+        // Refresh the crew profiles display
+        loadCrew();
     } catch (e) {
         console.error("Error updating attendance priority:", e);
         alert("Update failed.");
@@ -338,6 +364,8 @@ window.updateShiftPreference = async function(crewId, preference) {
             shiftPreference: preference
         });
         console.log("Shift preference updated to:", preference);
+        // Refresh the crew profiles display
+        loadCrew();
     } catch (e) {
         console.error("Error updating shift preference:", e);
         alert("Update failed.");
@@ -437,6 +465,8 @@ window.updateRank = async function(crewId, rank) {
             seniorityRank: rankValue
         });
         console.log("Rank updated!");
+        // Refresh the crew profiles display
+        loadCrew();
     } catch (e) {
         console.error("Error updating rank:", e);
         alert("Update failed.");
@@ -472,6 +502,8 @@ window.toggleTopPriorityStation = async function(crewId, station) {
         }
         
         console.log("Top priority station updated!");
+        // Refresh the crew profiles display
+        loadCrew();
         
     } catch (e) {
         console.error("Error updating top priority station:", e);
@@ -513,6 +545,8 @@ window.toggleSecondaryStation = async function(crewId, station) {
         }
         
         console.log("Secondary stations updated!");
+        // Refresh the crew profiles display
+        loadCrew();
         
     } catch (e) {
         console.error("Error updating secondary stations:", e);
@@ -713,7 +747,7 @@ window.saveNewCrew = async function() {
         await addDoc(collection(db, "crewProfiles"), newCrewProfile);
         
         // Also add to users collection for role-based access
-        await addDoc(collection(db, "users"), {
+        await setDoc(doc(db, "users", userData.localId), {
             uid: userData.localId,
             email: email,
             name: name,
@@ -1234,7 +1268,7 @@ window.deleteCrewMember = async function(crewId, crewName) {
         `This will:\n` +
         `• Remove their profile permanently\n` +
         `• Remove them from all schedules\n` +
-        `• Delete their login access\n\n` +
+        `• Disable their login access\n\n` +
         `This action CANNOT be undone!`
     );
     
@@ -1251,6 +1285,10 @@ window.deleteCrewMember = async function(crewId, crewName) {
     if (!doubleConfirm) return;
     
     try {
+        // Get crew data first to retrieve UID and email
+        const crewDoc = await getDoc(doc(db, "crewProfiles", crewId));
+        const crewData = crewDoc.data();
+        
         // Delete from crewProfiles collection
         await deleteDoc(doc(db, "crewProfiles", crewId));
         
@@ -1261,7 +1299,26 @@ window.deleteCrewMember = async function(crewId, crewName) {
             await deleteDoc(doc(db, "users", userDoc.id));
         });
         
-        alert(`✅ Crew member "${crewName}" has been deleted successfully.`);
+        // Create a deleted users record to prevent login
+        if (crewData && (crewData.uid || crewData.email)) {
+            try {
+                await setDoc(doc(db, "deletedUsers", crewData.uid || crewData.email), {
+                    uid: crewData.uid || null,
+                    email: crewData.email || null,
+                    name: crewName,
+                    deletedAt: new Date(),
+                    deletedBy: auth.currentUser?.email || "manager"
+                });
+                console.log("Deleted user record created - user cannot log in");
+            } catch (deleteError) {
+                console.error("Error creating deleted user record:", deleteError);
+            }
+        }
+        
+        alert(`✅ Crew member "${crewName}" has been deleted successfully.\n\n` +
+              `Their login access has been disabled immediately.\n\n` +
+              `📝 Remember to manually delete their Firebase Auth account:\n` +
+              `Firebase Console → Authentication → Users → Delete user`);
         closeCrewModal();
         loadCrew(); // Reload crew list
         

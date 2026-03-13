@@ -314,15 +314,19 @@
                 font-size: 12px;
             }
             
-            /* Adjust column widths - balanced */
-            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18%; } /* STATION */
-            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 16%; } /* NAME - smaller */
-            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 14%; } /* TIME */
-            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6%; } /* 15 */
-            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6%; } /* 30 */
-            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6%; } /* 60 */
-            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6%; } /* 15 */
-            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 22%; } /* SIGNATURE */
+            .day-container table {
+                min-width: 650px; /* Ensure table has minimum width for pixel columns */
+            }
+            
+            /* Adjust column widths - fixed pixel widths for better control */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 120px !important; min-width: 120px; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 110px !important; min-width: 110px; } /* NAME */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 140px !important; min-width: 140px; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 40px !important; min-width: 40px; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 40px !important; min-width: 40px; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 40px !important; min-width: 40px; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 40px !important; min-width: 40px; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 120px !important; min-width: 120px; } /* SIGNATURE */
         }
         
         /* ========================================
@@ -365,15 +369,19 @@
                 font-size: 11px;
             }
             
-            /* Adjust column widths - balanced */
-            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18%; } /* STATION */
-            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 16%; } /* NAME - smaller */
-            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 14%; } /* TIME */
-            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6%; } /* 15 */
-            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6%; } /* 30 */
-            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6%; } /* 60 */
-            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6%; } /* 15 */
-            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 22%; } /* SIGNATURE */
+            .day-container table {
+                min-width: 600px; /* Ensure table has minimum width for pixel columns */
+            }
+            
+            /* Adjust column widths - fixed pixel widths for better control */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 110px !important; min-width: 110px; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 100px !important; min-width: 100px; } /* NAME */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 130px !important; min-width: 130px; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 35px !important; min-width: 35px; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 35px !important; min-width: 35px; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 35px !important; min-width: 35px; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 35px !important; min-width: 35px; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 110px !important; min-width: 110px; } /* SIGNATURE */
         }
         
         /* ========================================
@@ -504,24 +512,17 @@
                 vertical-align: middle;
             }
             
-            /* Hide columns 4,5,6,7,8 - keep only STATION, NAME, TIME */
-            .day-container table th:nth-child(4),
-            .day-container table th:nth-child(5),
-            .day-container table th:nth-child(6),
-            .day-container table th:nth-child(7),
-            .day-container table th:nth-child(8),
-            .day-container table td:nth-child(4),
-            .day-container table td:nth-child(5),
-            .day-container table td:nth-child(6),
-            .day-container table td:nth-child(7),
-            .day-container table td:nth-child(8) {
-                display: none !important;
-            }
+            /* Show all columns in portrait - no hiding */
             
-            /* Adjust remaining visible columns - STATION, NAME, TIME only */
-            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 18% !important; } /* STATION */
-            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 20% !important; } /* NAME - very small */
-            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 62% !important; } /* TIME - maximum width */
+            /* Adjust all columns to fit in portrait - STATION, NAME, TIME, 15, 30, 60, 15, SIGNATURE */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 15% !important; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 18% !important; } /* NAME */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 20% !important; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6% !important; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6% !important; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6% !important; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6% !important; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 23% !important; } /* SIGNATURE */
             
             .day-container select {
                 font-size: 13px;
@@ -631,10 +632,15 @@
                 margin-bottom: 10px;
             }
             
-            /* Portrait - only show STATION, NAME, TIME */
-            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 20% !important; } /* STATION */
-            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 22% !important; } /* NAME */
-            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 58% !important; } /* TIME - wider */
+            /* Portrait - show all columns with compact widths */
+            .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 14% !important; } /* STATION */
+            .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 16% !important; } /* NAME */
+            .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 18% !important; } /* TIME */
+            .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 5% !important; } /* 15 */
+            .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 5% !important; } /* 30 */
+            .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 5% !important; } /* 60 */
+            .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 5% !important; } /* 15 */
+            .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 22% !important; } /* SIGNATURE */
             
             .day-container table {
                 font-size: 10px;

@@ -1,5 +1,5 @@
 import { auth } from "./firebase-config.js";
-import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
@@ -21,6 +21,33 @@ window.login = async function() {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+
+        // Check if user has been deleted (optional - handle permission errors gracefully)
+        try {
+            const deletedUserDoc = await getDoc(doc(db, "deletedUsers", user.uid));
+            if (deletedUserDoc.exists()) {
+                // Sign out the user immediately
+                await auth.signOut();
+                loginBtn.classList.remove("loading");
+                loginBtn.disabled = false;
+                alert("❌ This account has been deactivated. Please contact your manager.");
+                return;
+            }
+
+            // Also check by email as fallback
+            const deletedByEmailDoc = await getDoc(doc(db, "deletedUsers", user.email));
+            if (deletedByEmailDoc.exists()) {
+                // Sign out the user immediately
+                await auth.signOut();
+                loginBtn.classList.remove("loading");
+                loginBtn.disabled = false;
+                alert("❌ This account has been deactivated. Please contact your manager.");
+                return;
+            }
+        } catch (deletedUserError) {
+            // Ignore permission errors for deletedUsers collection - it may not exist yet
+            console.log("Could not check deleted users (this is normal if collection doesn't exist):", deletedUserError.message);
+        }
 
         const docSnap = await getDoc(doc(db, "users", user.uid));
 

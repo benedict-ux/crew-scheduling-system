@@ -50,28 +50,8 @@ class PerformanceMonitor {
     }
 
     monitorFirebase() {
-        // Track Firebase operation times
-        const originalFetch = window.fetch;
-        window.fetch = async (...args) => {
-            const start = performance.now();
-            try {
-                const response = await originalFetch(...args);
-                const duration = performance.now() - start;
-                
-                if (args[0].includes('firestore') || args[0].includes('firebase')) {
-                    console.log(`🔥 Firebase request: ${duration.toFixed(2)}ms`);
-                    
-                    if (duration > 5000) {
-                        console.warn('⚠️ Slow Firebase request detected');
-                    }
-                }
-                
-                return response;
-            } catch (error) {
-                console.error('🔥 Firebase request failed:', error);
-                throw error;
-            }
-        };
+        // Temporarily disabled Firebase monitoring to prevent interference
+        console.log('📊 Firebase monitoring disabled to prevent connection issues');
     }
 
     showSlowConnectionTip() {

@@ -117,8 +117,8 @@ window.loadSchedule = async function () {
                     const [hours, minutes] = schoolEndTime.split(':');
                     const endHour = parseInt(hours);
                     
-                    // If school ends at 20:00 (8 PM) or later, can't work
-                    if (endHour >= 20) {
+                    // If school ends at 17:00 (5 PM) or later, can't work
+                    if (endHour >= 17) {
                         return false;
                     }
                 }
@@ -127,7 +127,7 @@ window.loadSchedule = async function () {
             });
 
             // Group shifts by station - EXACT ORDER FROM TEMPLATE WITH 3 MID STATIONS
-            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING", "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"];
+            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING", "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
             const shiftsByStation = {};
             
             fullScheduleData[day].forEach((shift, shiftIndex) => {

@@ -323,7 +323,7 @@ async function loadGlobalSchedule() {
             ).toISOString().split("T")[0];
 
             // Group shifts by station
-            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"];
+            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
             const shiftsByStation = {};
             
             scheduleData[day].forEach((shift) => {

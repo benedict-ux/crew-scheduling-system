@@ -243,7 +243,17 @@ window.updateRestDay = async function(crewId, day, isRestDay) {
         await updateDoc(doc(db, "crewProfiles", crewId), {
             [`restDays.${day}`]: isRestDay
         });
-        console.log(`Rest day updated for ${day}`);
+        
+        // Update the UI dynamically without closing the modal
+        const workingSection = document.getElementById(`working-section-${crewId}-${day}`);
+        
+        if (workingSection) {
+            if (isRestDay) {
+                workingSection.style.display = 'none';
+            } else {
+                workingSection.style.display = 'block';
+            }
+        }
     } catch (e) {
         console.error("Error updating rest day:", e);
         alert("Update failed.");
@@ -258,7 +268,20 @@ window.updateNoClass = async function(crewId, day, noClass) {
         await updateDoc(doc(db, "crewProfiles", crewId), {
             [`noClass.${day}`]: noClass
         });
-        console.log(`No class updated for ${day}`);
+        
+        // Update the UI dynamically without closing the modal
+        const preferSection = document.getElementById(`prefer-section-${crewId}-${day}`);
+        const schoolSection = document.getElementById(`school-section-${crewId}-${day}`);
+        
+        if (preferSection && schoolSection) {
+            if (noClass) {
+                preferSection.style.display = 'block';
+                schoolSection.style.display = 'none';
+            } else {
+                preferSection.style.display = 'none';
+                schoolSection.style.display = 'block';
+            }
+        }
     } catch (e) {
         console.error("Error updating no class:", e);
         alert("Update failed.");
@@ -483,7 +506,7 @@ window.toggleTopPriorityStation = async function(crewId, station) {
         });
         
         // Update UI - remove highlight from all top priority boxes
-        const allStations = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"];
+        const allStations = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
         allStations.forEach(s => {
             const box = document.getElementById(`top-${crewId}-${s.replace(/\//g, '-')}`);
             if (box) {
@@ -648,11 +671,9 @@ window.openAddCrewModal = function() {
                             <option value="FRY">FRY</option>
                             <option value="PANTRY">PANTRY</option>
                             <option value="B-UP">B-UP</option>
-                            <option value="TD2">TD2</option>
                             <option value="GRILL">GRILL</option>
                             <option value="STOCKMAN">STOCKMAN</option>
                             <option value="DOORMAN">DOORMAN</option>
-                            <option value="GUARD">GUARD</option>
                             <option value="PC">PC</option>
                         </select>
                     </div>
@@ -958,12 +979,13 @@ window.openCrewModal = async function(crewId) {
                     <label style="font-size: 0.9em; display: flex; align-items: center; margin: 4px 0;">
                         <input type="checkbox" onchange="updateRestDay('${crewId}', '${day}', this.checked)" ${isRestDay ? "checked" : ""} style="margin-right: 6px;"> Rest Day
                     </label>
-                    ${!isRestDay ? `
+                    <div id="working-section-${crewId}-${day}" style="display: ${isRestDay ? 'none' : 'block'};">
                     <br/>
                     <label style="font-size: 0.9em; display: flex; align-items: center; margin: 4px 0;">
                         <input type="checkbox" onchange="updateNoClass('${crewId}', '${day}', this.checked)" ${noClass ? "checked" : ""} style="margin-right: 6px;"> No Class
                     </label>
                     ${noClass ? `
+                    <div id="prefer-section-${crewId}-${day}" style="display: block;">
                     <br/>
                     <label style="font-size: 0.9em; color: #666;">Prefer:</label>
                     <select onchange="updateNoClassPreference('${crewId}', '${day}', this.value)" style="font-size: 0.9em; width: 100px; padding: 3px;">
@@ -971,12 +993,24 @@ window.openCrewModal = async function(crewId) {
                         <option value="opening" ${noClassPreference === "opening" ? "selected" : ""}>Opening</option>
                         <option value="closing" ${noClassPreference === "closing" ? "selected" : ""}>Closing</option>
                     </select>
+                    </div>
                     ` : `
+                    <div id="prefer-section-${crewId}-${day}" style="display: none;">
+                    <br/>
+                    <label style="font-size: 0.9em; color: #666;">Prefer:</label>
+                    <select onchange="updateNoClassPreference('${crewId}', '${day}', this.value)" style="font-size: 0.9em; width: 100px; padding: 3px;">
+                        <option value="any" ${noClassPreference === "any" ? "selected" : ""}>Any Shift</option>
+                        <option value="opening" ${noClassPreference === "opening" ? "selected" : ""}>Opening</option>
+                        <option value="closing" ${noClassPreference === "closing" ? "selected" : ""}>Closing</option>
+                    </select>
+                    </div>
+                    <div id="school-section-${crewId}-${day}" style="display: ${noClass ? 'none' : 'block'};">
                     <br/>
                     <label style="font-size: 0.9em; color: #666;">School:</label>
                     <input type="time" value="${schoolStart}" onchange="updateSchoolStartTime('${crewId}', '${day}', this.value)" style="font-size: 0.9em; width: 80px; padding: 3px;" placeholder="Start">
                     <span style="font-size: 0.9em;">to</span>
                     <input type="time" value="${schoolEnd}" onchange="updateSchoolEndTime('${crewId}', '${day}', this.value)" style="font-size: 0.9em; width: 80px; padding: 3px;" placeholder="End">
+                    </div>
                     `}
                     ${crew.roleType === "student" && !noClass ? `
                     <br/><label id="canWorkNextDay-${crewId}-${day}" style="font-size: 0.9em; color: #666; display: flex; align-items: center; margin: 4px 0;">
@@ -987,7 +1021,7 @@ window.openCrewModal = async function(crewId) {
                         <input type="checkbox" onchange="updateCanWorkNextDay('${crewId}', '${day}', this.checked)" ${canWorkNextDay ? "checked" : ""} style="margin-right: 6px;"> Can open next day
                     </label>
                     `}
-                    ` : ''}
+                    </div>
                 </div>`;
         });
         schoolControls += `</div>`;
@@ -1118,7 +1152,7 @@ window.openCrewModal = async function(crewId) {
                             <label style="font-weight: bold; color: #d32f2f;">Top Priority Station:</label>
                             <p style="margin: 5px 0; font-size: 12px; color: #666;">Click to select the main station for this crew member</p>
                             <div id="topPrioStations-${crewId}" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                                ${["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"].map(station => `
+                                ${["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"].map(station => `
                                     <div onclick="toggleTopPriorityStation('${crewId}', '${station}')" 
                                         id="top-${crewId}-${station.replace(/\//g, '-')}"
                                         style="
@@ -1143,7 +1177,7 @@ window.openCrewModal = async function(crewId) {
                             <label style="font-weight: bold; color: #1976d2;">Secondary Stations:</label>
                             <p style="margin: 5px 0; font-size: 12px; color: #666;">Click to select additional stations (can select multiple or leave blank)</p>
                             <div id="secondaryStations-${crewId}" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                                ${["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"].map(station => {
+                                ${["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"].map(station => {
                                     const isSelected = (crew.secondaryStations || []).includes(station);
                                     return `
                                     <div onclick="toggleSecondaryStation('${crewId}', '${station}')" 
@@ -1433,6 +1467,88 @@ window.generateSchedule = async function () {
             crewAssignmentCount[crew.name] = 0;
         });
 
+        // ===== SMART REST DAY DISTRIBUTION =====
+        
+        crewList.forEach(crew => {
+            const manualRestDays = [];
+            
+            // Check which days manager manually set as rest days
+            days.forEach(day => {
+                if (crew.restDays?.[day] === true) {
+                    manualRestDays.push(day);
+                }
+            });
+            
+            // If manager set NO manual rest days, apply automatic rest days based on attendance priority
+            if (manualRestDays.length === 0) {
+                const attendancePriority = crew.attendancePriority || 3;
+                let autoRestDaysNeeded = 1; // Default: everyone gets at least 1 rest day
+                
+                // Determine number of automatic rest days based on attendance priority
+                if (attendancePriority === 5) {
+                    autoRestDaysNeeded = 1; // Always Present: 1 rest day
+                } else if (attendancePriority === 4) {
+                    autoRestDaysNeeded = 1; // Reliable: 1 rest day
+                } else if (attendancePriority === 3) {
+                    autoRestDaysNeeded = 1; // Normal: 1 rest day
+                } else if (attendancePriority === 2) {
+                    autoRestDaysNeeded = 2; // Sometimes Absent: 2 rest days
+                } else if (attendancePriority === 1) {
+                    autoRestDaysNeeded = 2; // Often Absent: 2 rest days
+                }
+                
+                console.log(`  → ${crew.name}: Attendance Priority ${attendancePriority}, Auto rest days needed: ${autoRestDaysNeeded}`);
+                
+                // Initialize restDays if it doesn't exist
+                if (!crew.restDays) {
+                    crew.restDays = {};
+                    days.forEach(day => {
+                        crew.restDays[day] = false;
+                    });
+                }
+                
+                // Better distribution: Spread rest days across the week based on crew name
+                const nameHash = crew.name.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
+                let assignedRestDays = 0;
+                
+                // Distribute rest days more evenly across all days
+                const dayPriority = ["Sunday", "Saturday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+                
+                // Use name hash to determine starting day for this crew member
+                const startDayIndex = nameHash % dayPriority.length;
+                
+                // Try to assign rest days starting from the crew's "assigned" day
+                for (let i = 0; i < dayPriority.length && assignedRestDays < autoRestDaysNeeded; i++) {
+                    const dayIndex = (startDayIndex + i) % dayPriority.length;
+                    const day = dayPriority[dayIndex];
+                    
+                    // Assign rest day with some probability to spread them out
+                    const shouldAssign = (nameHash + i) % 4 === 0 || 
+                                       (assignedRestDays === 0 && i >= dayPriority.length - 2); // Ensure at least one rest day
+                    
+                    if (shouldAssign) {
+                        crew.restDays[day] = true;
+                        assignedRestDays++;
+                    }
+                }
+                
+                // Fallback: If still need more rest days, assign to any remaining day
+                if (assignedRestDays < autoRestDaysNeeded) {
+                    for (const day of dayPriority) {
+                        if (assignedRestDays >= autoRestDaysNeeded) break;
+                        if (!crew.restDays[day]) {
+                            crew.restDays[day] = true;
+                            assignedRestDays++;
+                        }
+                    }
+                }
+                
+                console.log(`  → ${crew.name}: Total rest days assigned = ${assignedRestDays}`);
+            } else {
+                console.log(`  → ${crew.name}: Using manager-set rest days only: [${manualRestDays.join(', ')}]`);
+            }
+        });
+        
         days.forEach((day, dayIndex) => {
             const baseDateParts = correctedStartDate.split("-");
             const baseDate = new Date(baseDateParts[0], baseDateParts[1]-1, baseDateParts[2]);
@@ -1448,18 +1564,17 @@ window.generateSchedule = async function () {
                 const noClass = crew.noClass?.[day] === true;
                 if (noClass) return true;
                 
-                // Check if school schedule blocks the ENTIRE day (8 PM or later end time)
+                // Check if school schedule blocks the ENTIRE day (5 PM or later end time)
                 const schoolEndTime = crew.schoolEndTime?.[day];
                 if (schoolEndTime && schoolEndTime !== "") {
                     const [hours] = schoolEndTime.split(':');
-                    if (parseInt(hours) >= 20) return false;
+                    if (parseInt(hours) >= 17) return false;
                 }
                 
                 return true;
             });
 
             let availableCrew = [...allDayCrewPool];
-            console.log(`${day}: ${availableCrew.length} crew available`);
 
             if (availableCrew.length === 0) {
                 alert(`No crew available for ${day}.`);
@@ -1545,10 +1660,32 @@ window.generateSchedule = async function () {
                     return false;
                 };
 
-                // Step 1: Try TOP PRIORITY station crew with matching preference
+                // ===== WEEKLY ROTATION LOGIC =====
+                // Calculate week number for rotation (based on start date)
+                const startDate = new Date(correctedStartDate);
+                const weekNumber = Math.floor(startDate.getTime() / (7 * 24 * 60 * 60 * 1000)) % 100; // Cycle every 100 weeks
+                
+                // All available stations for rotation
+                const allStations = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
+                
+                // Function to get rotated station for a crew member (DISABLED - return original)
+                const getRotatedStation = (originalStation, crewName, qualifiedStations) => {
+                    return originalStation; // DISABLED: No rotation for now
+                };
+                
+                // Function to get rotated secondary stations (DISABLED - return original)
+                const getRotatedSecondaryStations = (originalStations, crewName, qualifiedStations) => {
+                    // Ensure we always return an array
+                    if (!originalStations) return [];
+                    if (!Array.isArray(originalStations)) return [];
+                    return originalStations; // DISABLED: No rotation for now
+                };
+
+                // Step 1: Try TOP PRIORITY station crew with matching preference (WITH ROTATION)
                 let candidates = availableCrew.filter(crew => {
-                    const topPriority = crew.topPriorityStation || "";
-                    return topPriority === shift.station && canWorkShift(crew) && matchesPreference(crew);
+                    const originalTopPriority = crew.topPriorityStation || "";
+                    const rotatedTopPriority = getRotatedStation(originalTopPriority, crew.name);
+                    return rotatedTopPriority === shift.station && canWorkShift(crew) && matchesPreference(crew);
                 });
                 
                 // Sort by: 1) For OPENING shifts, prioritize high attendance, 2) Assignment count
@@ -1569,18 +1706,21 @@ window.generateSchedule = async function () {
 
                 console.log(`  Step 1 (top priority + preference): ${candidates.length} candidates`);
                 if (candidates.length > 0) {
-                    console.log(`    → Using: ${candidates[0].name} (topPriority: ${candidates[0].topPriorityStation}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
+                    const originalTop = candidates[0].topPriorityStation;
+                    const rotatedTop = getRotatedStation(originalTop, candidates[0].name);
+                    console.log(`    → Using: ${candidates[0].name} (original: ${originalTop} → rotated: ${rotatedTop}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
                     assignedCrew = candidates[0];
                 }
 
-                // Step 2: Try HIGH ATTENDANCE crew (4-5) with SECONDARY stations + matching preference
+                // Step 2: Try HIGH ATTENDANCE crew (4-5) with SECONDARY stations + matching preference (WITH ROTATION)
                 if (!assignedCrew) {
                     candidates = availableCrew.filter(crew => {
                         const attendance = crew.attendancePriority || 3;
                         if (attendance < 4) return false; // Only high attendance
                         
-                        const secondaryStations = crew.secondaryStations || [];
-                        return secondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew);
+                        const originalSecondaryStations = crew.secondaryStations || [];
+                        const rotatedSecondaryStations = getRotatedSecondaryStations(originalSecondaryStations, crew.name);
+                        return rotatedSecondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew);
                     });
                     
                     candidates.sort((a, b) => {
@@ -1599,16 +1739,19 @@ window.generateSchedule = async function () {
 
                     console.log(`  Step 2 (high attendance secondary + pref): ${candidates.length} candidates`);
                     if (candidates.length > 0) {
-                        console.log(`    → Using: ${candidates[0].name} (secondary: ${candidates[0].secondaryStations}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
+                        const originalSecondary = candidates[0].secondaryStations || [];
+                        const rotatedSecondary = getRotatedSecondaryStations(originalSecondary, candidates[0].name);
+                        console.log(`    → Using: ${candidates[0].name} (original: ${Array.isArray(originalSecondary) ? originalSecondary.join(',') : originalSecondary} → rotated: ${Array.isArray(rotatedSecondary) ? rotatedSecondary.join(',') : rotatedSecondary}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
                         assignedCrew = candidates[0];
                     }
                 }
 
-                // Step 3: Try TOP PRIORITY station crew (ignore preference) - BUT RESPECT STRICT PREFERENCES
+                // Step 3: Try TOP PRIORITY station crew (ignore preference) - BUT RESPECT STRICT PREFERENCES (WITH ROTATION)
                 if (!assignedCrew) {
                     candidates = availableCrew.filter(crew => {
-                        const topPriority = crew.topPriorityStation || "";
-                        if (topPriority !== shift.station) return false;
+                        const originalTopPriority = crew.topPriorityStation || "";
+                        const rotatedTopPriority = getRotatedStation(originalTopPriority, crew.name);
+                        if (rotatedTopPriority !== shift.station) return false;
                         if (!canWorkShift(crew)) return false;
                         
                         // STRICT: Don't assign "opening" crew to closing or vice versa
@@ -1629,16 +1772,19 @@ window.generateSchedule = async function () {
                     
                     console.log(`  Step 3 (top priority, respect strict pref): ${candidates.length} candidates`);
                     if (candidates.length > 0) {
-                        console.log(`    → Using: ${candidates[0].name} (topPriority: ${candidates[0].topPriorityStation}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
+                        const originalTop = candidates[0].topPriorityStation;
+                        const rotatedTop = getRotatedStation(originalTop, candidates[0].name);
+                        console.log(`    → Using: ${candidates[0].name} (original: ${originalTop} → rotated: ${rotatedTop}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
                         assignedCrew = candidates[0];
                     }
                 }
 
-                // Step 4: Try SECONDARY station crew with matching preference
+                // Step 4: Try SECONDARY station crew with matching preference (WITH ROTATION)
                 if (!assignedCrew) {
                     candidates = availableCrew.filter(crew => {
-                        const secondaryStations = crew.secondaryStations || [];
-                        return secondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew);
+                        const originalSecondaryStations = crew.secondaryStations || [];
+                        const rotatedSecondaryStations = getRotatedSecondaryStations(originalSecondaryStations, crew.name);
+                        return rotatedSecondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew);
                     });
                     
                     // Sort by: 1) Attendance priority (higher first), 2) Assignment count (lower first)
@@ -1651,16 +1797,19 @@ window.generateSchedule = async function () {
                     
                     console.log(`  Step 4 (secondary + preference): ${candidates.length} candidates`);
                     if (candidates.length > 0) {
-                        console.log(`    → Using: ${candidates[0].name} (secondary: ${candidates[0].secondaryStations}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
+                        const originalSecondary = candidates[0].secondaryStations || [];
+                        const rotatedSecondary = getRotatedSecondaryStations(originalSecondary, candidates[0].name);
+                        console.log(`    → Using: ${candidates[0].name} (original: ${Array.isArray(originalSecondary) ? originalSecondary.join(',') : originalSecondary} → rotated: ${Array.isArray(rotatedSecondary) ? rotatedSecondary.join(',') : rotatedSecondary}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
                         assignedCrew = candidates[0];
                     }
                 }
 
-                // Step 5: Try SECONDARY station crew (ignore preference) - BUT RESPECT STRICT PREFERENCES
+                // Step 5: Try SECONDARY station crew (ignore preference) - BUT RESPECT STRICT PREFERENCES (WITH ROTATION)
                 if (!assignedCrew) {
                     candidates = availableCrew.filter(crew => {
-                        const secondaryStations = crew.secondaryStations || [];
-                        if (!secondaryStations.includes(shift.station)) return false;
+                        const originalSecondaryStations = crew.secondaryStations || [];
+                        const rotatedSecondaryStations = getRotatedSecondaryStations(originalSecondaryStations, crew.name);
+                        if (!rotatedSecondaryStations.includes(shift.station)) return false;
                         if (!canWorkShift(crew)) return false;
                         
                         // STRICT: Don't assign "opening" crew to closing or vice versa
@@ -1681,7 +1830,9 @@ window.generateSchedule = async function () {
                     
                     console.log(`  Step 5 (secondary, respect strict pref): ${candidates.length} candidates`);
                     if (candidates.length > 0) {
-                        console.log(`    → Using: ${candidates[0].name} (secondary: ${candidates[0].secondaryStations}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
+                        const originalSecondary = candidates[0].secondaryStations || [];
+                        const rotatedSecondary = getRotatedSecondaryStations(originalSecondary, candidates[0].name);
+                        console.log(`    → Using: ${candidates[0].name} (original: ${Array.isArray(originalSecondary) ? originalSecondary.join(',') : originalSecondary} → rotated: ${Array.isArray(rotatedSecondary) ? rotatedSecondary.join(',') : rotatedSecondary}, pref: ${candidates[0].shiftPreference}, attendance: ${candidates[0].attendancePriority || 3}, assignments: ${crewAssignmentCount[candidates[0].name]})`);
                         assignedCrew = candidates[0];
                     }
                 }

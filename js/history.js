@@ -147,7 +147,7 @@ window.viewScheduleModal = async function(scheduleId) {
         // Station order
         const stationOrder = [
             "SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", 
-            "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD"
+            "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN"
         ];
         
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -426,7 +426,7 @@ window.downloadSchedule = async function(scheduleId) {
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const stationOrder = [
             "SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", 
-            "PANTRY", "B-UP", "TD2", "GRILL", "STOCKMAN", "DOORMAN", "GUARD", "PC"
+            "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"
         ];
         
         const workbook = XLSX.utils.book_new();

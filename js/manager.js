@@ -1522,20 +1522,22 @@ window.generateSchedule = async function () {
                     const dayIndex = (startDayIndex + i) % dayPriority.length;
                     const day = dayPriority[dayIndex];
                     
-                    // Assign rest day with some probability to spread them out
-                    const shouldAssign = (nameHash + i) % 4 === 0 || 
-                                       (assignedRestDays === 0 && i >= dayPriority.length - 2); // Ensure at least one rest day
-                    
-                    if (shouldAssign) {
-                        crew.restDays[day] = true;
-                        assignedRestDays++;
+                    // Simple assignment: assign rest days in order until we reach the needed amount
+                    if (assignedRestDays < autoRestDaysNeeded) {
+                        // Use hash to determine if this crew gets this day as rest day
+                        const shouldAssign = (nameHash + i) % 3 === 0;
+                        
+                        if (shouldAssign) {
+                            crew.restDays[day] = true;
+                            assignedRestDays++;
+                        }
                     }
                 }
                 
-                // Fallback: If still need more rest days, assign to any remaining day
+                // Fallback: If still need rest days, assign to the first available days
                 if (assignedRestDays < autoRestDaysNeeded) {
-                    for (const day of dayPriority) {
-                        if (assignedRestDays >= autoRestDaysNeeded) break;
+                    for (let i = 0; i < dayPriority.length && assignedRestDays < autoRestDaysNeeded; i++) {
+                        const day = dayPriority[i];
                         if (!crew.restDays[day]) {
                             crew.restDays[day] = true;
                             assignedRestDays++;
@@ -1651,13 +1653,20 @@ window.generateSchedule = async function () {
                     return true;
                 };
 
-                // Helper: Check if shift preference matches
-                const matchesPreference = (crew) => {
+                // Helper: Check if shift preference matches (with flexibility for balance)
+                const matchesPreference = (crew, strict = true) => {
                     const shiftPref = (crew.shiftPreference || "flexible").toLowerCase();
                     if (shiftPref === "flexible") return true; // Flexible can work any shift
-                    if (shiftPref === "opening" && shiftType === "opening") return true;
-                    if (shiftPref === "closing" && shiftType === "closing") return true;
-                    return false;
+                    
+                    if (strict) {
+                        // Strict mode: only assign to preferred shifts
+                        if (shiftPref === "opening" && shiftType === "opening") return true;
+                        if (shiftPref === "closing" && shiftType === "closing") return true;
+                        return false;
+                    } else {
+                        // Flexible mode: allow opposite shifts for balance (but with lower priority)
+                        return true; // Allow any assignment when balancing is needed
+                    }
                 };
 
                 // ===== WEEKLY ROTATION LOGIC =====
@@ -1685,7 +1694,7 @@ window.generateSchedule = async function () {
                 let candidates = availableCrew.filter(crew => {
                     const originalTopPriority = crew.topPriorityStation || "";
                     const rotatedTopPriority = getRotatedStation(originalTopPriority, crew.name);
-                    return rotatedTopPriority === shift.station && canWorkShift(crew) && matchesPreference(crew);
+                    return rotatedTopPriority === shift.station && canWorkShift(crew) && matchesPreference(crew, true);
                 });
                 
                 // Sort by: 1) For OPENING shifts, prioritize high attendance, 2) Assignment count
@@ -1720,7 +1729,7 @@ window.generateSchedule = async function () {
                         
                         const originalSecondaryStations = crew.secondaryStations || [];
                         const rotatedSecondaryStations = getRotatedSecondaryStations(originalSecondaryStations, crew.name);
-                        return rotatedSecondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew);
+                        return rotatedSecondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew, true);
                     });
                     
                     candidates.sort((a, b) => {
@@ -1784,7 +1793,7 @@ window.generateSchedule = async function () {
                     candidates = availableCrew.filter(crew => {
                         const originalSecondaryStations = crew.secondaryStations || [];
                         const rotatedSecondaryStations = getRotatedSecondaryStations(originalSecondaryStations, crew.name);
-                        return rotatedSecondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew);
+                        return rotatedSecondaryStations.includes(shift.station) && canWorkShift(crew) && matchesPreference(crew, true);
                     });
                     
                     // Sort by: 1) Attendance priority (higher first), 2) Assignment count (lower first)
@@ -1837,9 +1846,58 @@ window.generateSchedule = async function () {
                     }
                 }
 
-                // Step 6: Leave as Unassigned if no qualified crew available
+                // Step 6: Flexible preference matching for balance
                 if (!assignedCrew) {
-                    console.log(`  ⚠️ No qualified crew available - leaving Unassigned`);
+                    candidates = availableCrew.filter(crew => {
+                        const topPriority = crew.topPriorityStation || "";
+                        const secondaryStations = crew.secondaryStations || [];
+                        const hasStation = topPriority === shift.station || secondaryStations.includes(shift.station);
+                        return hasStation && canWorkShift(crew) && matchesPreference(crew, false); // Non-strict preference
+                    });
+                    
+                    candidates.sort((a, b) => {
+                        const attendanceA = a.attendancePriority || 3;
+                        const attendanceB = b.attendancePriority || 3;
+                        
+                        // Prioritize by attendance, then by assignment balance
+                        if (attendanceB !== attendanceA) return attendanceB - attendanceA;
+                        return crewAssignmentCount[a.name] - crewAssignmentCount[b.name];
+                    });
+                    
+                    console.log(`  Step 6 (flexible preference for balance): ${candidates.length} candidates`);
+                    if (candidates.length > 0) {
+                        assignedCrew = candidates[0];
+                        console.log(`    → Using: ${assignedCrew.name} (flexible assignment for balance, pref: ${assignedCrew.shiftPreference}, attendance: ${assignedCrew.attendancePriority || 3})`);
+                    }
+                }
+
+                // Step 7: Intelligent fallback - assign crew with ANY station qualification
+                // Step 7: Intelligent fallback - assign crew with ANY station qualification
+                if (!assignedCrew && availableCrew.length > 0) {
+                    // Filter crew who have this station in their top priority OR secondary stations
+                    const qualifiedCrew = availableCrew.filter(crew => {
+                        const topPriority = crew.topPriorityStation || "";
+                        const secondaryStations = crew.secondaryStations || [];
+                        return topPriority === shift.station || secondaryStations.includes(shift.station);
+                    });
+                    
+                    if (qualifiedCrew.length > 0) {
+                        // Sort qualified crew by attendance priority and assignment count
+                        qualifiedCrew.sort((a, b) => {
+                            const attendanceA = a.attendancePriority || 3;
+                            const attendanceB = b.attendancePriority || 3;
+                            if (attendanceB !== attendanceA) return attendanceB - attendanceA;
+                            return crewAssignmentCount[a.name] - crewAssignmentCount[b.name];
+                        });
+                        
+                        assignedCrew = qualifiedCrew[0];
+                        console.log(`  🔄 Intelligent fallback: Assigned ${assignedCrew.name} (qualified for ${shift.station})`);
+                    }
+                }
+
+                // Step 8: Leave as Unassigned only if no qualified crew available
+                if (!assignedCrew) {
+                    console.log(`  ⚠️ No qualified crew available for ${shift.station} - leaving Unassigned`);
                 }
 
                 const crewName = assignedCrew ? (assignedCrew.nickname || assignedCrew.name) : "Unassigned";

@@ -3,6 +3,9 @@
 <head>
     <title>Jollibee EDSA Kamias - Crew Scheduling</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Jollibee EDSA Kamias Branch - Crew Scheduling and Management System">
+    <meta name="theme-color" content="#DC0000">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
     <link rel="stylesheet" href="css/styles.css">
     <style>
@@ -106,6 +109,67 @@
         /* Full-Screen Loading Overlay - Hidden by default */
         .loading-overlay {
             display: none;
+        }
+
+        /* Loading Screen Styles */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #DC0000 0%, #B00000 50%, #8B0000 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 199, 0, 0.3);
+            border-top: 4px solid #FFC700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 25px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .loading-subtext {
+            font-size: 14px;
+            opacity: 0.8;
+            text-align: center;
+            max-width: 300px;
+        }
+
+        /* Hide main content initially */
+        .login-container {
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        .login-container.loaded {
+            opacity: 1;
         }
 
         /* Main Responsive Container */
@@ -474,6 +538,13 @@
 </head>
 <body>
 
+<!-- Loading Screen -->
+<div id="loadingScreen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">🍔 Loading Jollibee Crew System</div>
+    <div class="loading-subtext">Connecting to server, please wait...</div>
+</div>
+
 <!-- Floating circles for background animation -->
 <div class="floating-circle circle-1"></div>
 <div class="floating-circle circle-2"></div>
@@ -514,6 +585,54 @@
     </div>
 </div>
 
+<script>
+// Loading Screen Management
+document.addEventListener('DOMContentLoaded', function() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const loginContainer = document.querySelector('.login-container');
+    
+    // Register Service Worker for caching
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('Service Worker registered successfully:', registration.scope);
+            })
+            .catch(function(error) {
+                console.log('Service Worker registration failed:', error);
+            });
+    }
+    
+    // Show main content after minimum loading time
+    setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        loginContainer.classList.add('loaded');
+        
+        // Remove loading screen from DOM after animation
+        setTimeout(() => {
+            loadingScreen.remove();
+        }, 500);
+    }, 1500); // Minimum 1.5 seconds loading time
+});
+
+// Hide loading screen when page is fully loaded
+window.addEventListener('load', function() {
+    const loadingScreen = document.getElementById('loadingScreen');
+    const loginContainer = document.querySelector('.login-container');
+    
+    if (loadingScreen) {
+        loadingScreen.classList.add('fade-out');
+        loginContainer.classList.add('loaded');
+        
+        setTimeout(() => {
+            if (loadingScreen.parentNode) {
+                loadingScreen.remove();
+            }
+        }, 500);
+    }
+});
+</script>
+
+<script src="js/performance.js"></script>
 <script type="module" src="js/auth.js"></script>
 <script>
     // Handle Enter key press to submit login

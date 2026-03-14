@@ -316,20 +316,22 @@ window.updateRoleType = async function(crewId, roleType) {
 // 2D. TOGGLE WEEKLY SCHEDULE VISIBILITY
 // ===============================
 window.toggleWeeklyScheduleVisibility = function(crewId, roleType) {
-    // Find all the "Can open next day" checkboxes in the modal
-    const modal = document.getElementById('crewModal');
-    if (!modal) return;
+    console.log(`Toggling weekly schedule visibility for ${crewId}, role: ${roleType}`);
     
-    // Find all labels that contain "Can open next day"
-    const labels = modal.querySelectorAll('label');
-    labels.forEach(label => {
-        if (label.textContent.includes('Can open next day')) {
-            // Show or hide based on role type
+    // Days array to match the modal structure
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    
+    days.forEach(day => {
+        const canWorkLabel = document.getElementById(`canWorkNextDay-${crewId}-${day}`);
+        if (canWorkLabel) {
             if (roleType === 'student') {
-                label.style.display = '';
-                label.parentElement.style.display = '';
+                // Show the checkbox for students with flex display
+                canWorkLabel.style.display = 'flex';
+                console.log(`Showing "Can open next day" checkbox for ${day}`);
             } else {
-                label.style.display = 'none';
+                // Hide the checkbox for regular employees
+                canWorkLabel.style.display = 'none';
+                console.log(`Hiding "Can open next day" checkbox for ${day}`);
             }
         }
     });
@@ -953,13 +955,13 @@ window.openCrewModal = async function(crewId) {
                 <div style="margin-bottom:8px; padding: 8px; border: 1px solid #e0e0e0; border-radius: 4px; background: #f9f9f9;">
                     <label><strong>${day.substring(0,3)}:</strong></label>
                     <br/>
-                    <label style="font-size: 0.9em;">
-                        <input type="checkbox" onchange="updateRestDay('${crewId}', '${day}', this.checked)" ${isRestDay ? "checked" : ""}> Rest Day
+                    <label style="font-size: 0.9em; display: flex; align-items: center; margin: 4px 0;">
+                        <input type="checkbox" onchange="updateRestDay('${crewId}', '${day}', this.checked)" ${isRestDay ? "checked" : ""} style="margin-right: 6px;"> Rest Day
                     </label>
                     ${!isRestDay ? `
                     <br/>
-                    <label style="font-size: 0.9em;">
-                        <input type="checkbox" onchange="updateNoClass('${crewId}', '${day}', this.checked)" ${noClass ? "checked" : ""}> No Class
+                    <label style="font-size: 0.9em; display: flex; align-items: center; margin: 4px 0;">
+                        <input type="checkbox" onchange="updateNoClass('${crewId}', '${day}', this.checked)" ${noClass ? "checked" : ""} style="margin-right: 6px;"> No Class
                     </label>
                     ${noClass ? `
                     <br/>
@@ -977,10 +979,14 @@ window.openCrewModal = async function(crewId) {
                     <input type="time" value="${schoolEnd}" onchange="updateSchoolEndTime('${crewId}', '${day}', this.value)" style="font-size: 0.9em; width: 80px; padding: 3px;" placeholder="End">
                     `}
                     ${crew.roleType === "student" && !noClass ? `
-                    <br/><label style="font-size: 0.9em; color: #666;">
-                        <input type="checkbox" onchange="updateCanWorkNextDay('${crewId}', '${day}', this.checked)" ${canWorkNextDay ? "checked" : ""}> Can open next day
+                    <br/><label id="canWorkNextDay-${crewId}-${day}" style="font-size: 0.9em; color: #666; display: flex; align-items: center; margin: 4px 0;">
+                        <input type="checkbox" onchange="updateCanWorkNextDay('${crewId}', '${day}', this.checked)" ${canWorkNextDay ? "checked" : ""} style="margin-right: 6px;"> Can open next day
                     </label>
-                    ` : ''}
+                    ` : `
+                    <br/><label id="canWorkNextDay-${crewId}-${day}" style="font-size: 0.9em; color: #666; display: none; align-items: center; margin: 4px 0;">
+                        <input type="checkbox" onchange="updateCanWorkNextDay('${crewId}', '${day}', this.checked)" ${canWorkNextDay ? "checked" : ""} style="margin-right: 6px;"> Can open next day
+                    </label>
+                    `}
                     ` : ''}
                 </div>`;
         });

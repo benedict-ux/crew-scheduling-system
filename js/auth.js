@@ -3,10 +3,25 @@ import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/fir
 import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 
+// Show loading indicator during login
+function showLoginLoading(show = true) {
+    const loginBtn = document.getElementById("loginBtn");
+    if (loginBtn) {
+        if (show) {
+            loginBtn.classList.add("loading");
+            loginBtn.disabled = true;
+            loginBtn.textContent = "Signing In...";
+        } else {
+            loginBtn.classList.remove("loading");
+            loginBtn.disabled = false;
+            loginBtn.textContent = "Sign In";
+        }
+    }
+}
+
 window.login = async function() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
-    const loginBtn = document.getElementById("loginBtn");
 
     // Validate inputs
     if (!email || !password) {
@@ -14,12 +29,17 @@ window.login = async function() {
         return;
     }
 
-    // Show loading spinner
-    loginBtn.classList.add("loading");
-    loginBtn.disabled = true;
+    // Show loading with better UX
+    showLoginLoading(true);
 
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        // Add timeout for slow connections
+        const loginPromise = signInWithEmailAndPassword(auth, email, password);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Connection timeout')), 15000)
+        );
+
+        const userCredential = await Promise.race([loginPromise, timeoutPromise]);
         const user = userCredential.user;
 
         // Check if user has been deleted (optional - handle permission errors gracefully)
@@ -62,22 +82,24 @@ window.login = async function() {
             }
         } else {
             // Hide loading spinner
-            loginBtn.classList.remove("loading");
-            loginBtn.disabled = false;
+            showLoginLoading(false);
             alert("❌ User account not found. Please contact your manager.");
         }
     } catch (error) {
         // Hide loading spinner
-        loginBtn.classList.remove("loading");
-        loginBtn.disabled = false;
+        showLoginLoading(false);
         
-        // Better error messages
-        if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        // Better error messages for mobile users
+        if (error.message === 'Connection timeout') {
+            alert("❌ Connection timeout. Please check your internet connection and try again.");
+        } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
             alert("❌ Invalid email or password. Please try again.");
         } else if (error.code === 'auth/user-not-found') {
             alert("❌ No account found with this email.");
         } else if (error.code === 'auth/too-many-requests') {
             alert("❌ Too many failed login attempts. Please try again later.");
+        } else if (error.code === 'auth/network-request-failed') {
+            alert("❌ Network error. Please check your internet connection.");
         } else {
             alert("❌ Login failed: " + error.message);
         }

@@ -6,15 +6,42 @@ import { db } from "./firebase-config.js";
 // Show loading indicator during login
 function showLoginLoading(show = true) {
     const loginBtn = document.getElementById("loginBtn");
-    if (loginBtn) {
-        if (show) {
-            loginBtn.classList.add("loading");
-            loginBtn.disabled = true;
-            loginBtn.textContent = "Signing In...";
-        } else {
-            loginBtn.classList.remove("loading");
-            loginBtn.disabled = false;
-            loginBtn.textContent = "Sign In";
+    if (loginBtn) loginBtn.disabled = show;
+
+    // Reuse the full-page loading overlay
+    let overlay = document.getElementById("loginLoadingOverlay");
+    if (show) {
+        if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = "loginLoadingOverlay";
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: linear-gradient(135deg, #DC0000 0%, #B00000 50%, #8B0000 100%);
+                display: flex; flex-direction: column;
+                justify-content: center; align-items: center;
+                z-index: 9999; color: white;
+            `;
+            overlay.innerHTML = `
+                <div style="
+                    width: 60px; height: 60px;
+                    border: 4px solid rgba(255,199,0,0.3);
+                    border-top: 4px solid #FFC700;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 25px;
+                "></div>
+                <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px;">🍔 Signing In...</div>
+                <div style="font-size: 14px; opacity: 0.8;">Please wait...</div>
+                <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+            `;
+            document.body.appendChild(overlay);
+        }
+        overlay.style.display = "flex";
+    } else {
+        if (overlay) {
+            overlay.style.opacity = "0";
+            overlay.style.transition = "opacity 0.2s";
+            setTimeout(() => overlay.remove(), 200);
         }
     }
 }
@@ -46,10 +73,8 @@ window.login = async function() {
         try {
             const deletedUserDoc = await getDoc(doc(db, "deletedUsers", user.uid));
             if (deletedUserDoc.exists()) {
-                // Sign out the user immediately
                 await auth.signOut();
-                loginBtn.classList.remove("loading");
-                loginBtn.disabled = false;
+                showLoginLoading(false);
                 alert("❌ This account has been deactivated. Please contact your manager.");
                 return;
             }
@@ -57,10 +82,8 @@ window.login = async function() {
             // Also check by email as fallback
             const deletedByEmailDoc = await getDoc(doc(db, "deletedUsers", user.email));
             if (deletedByEmailDoc.exists()) {
-                // Sign out the user immediately
                 await auth.signOut();
-                loginBtn.classList.remove("loading");
-                loginBtn.disabled = false;
+                showLoginLoading(false);
                 alert("❌ This account has been deactivated. Please contact your manager.");
                 return;
             }
@@ -74,14 +97,13 @@ window.login = async function() {
         if (docSnap.exists()) {
             const role = docSnap.data().role;
 
-            // Redirect based on role
+            // Keep overlay visible during redirect
             if (role === "manager") {
                 window.location.replace("manager.html");
             } else {
                 window.location.replace("crew.html");
             }
         } else {
-            // Hide loading spinner
             showLoginLoading(false);
             alert("❌ User account not found. Please contact your manager.");
         }

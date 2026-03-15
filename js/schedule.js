@@ -111,15 +111,12 @@ window.loadSchedule = async function () {
                     return true; // No class = available to work
                 }
                 
-                // Check school end time - if 8:00 PM (20:00) or later, crew is unavailable
+                // If school ends at 6 PM (18:00) or later, crew cannot work at all that day
                 const schoolEndTime = crew.schoolEndTime?.[day];
                 if (schoolEndTime && schoolEndTime !== "") {
-                    const [hours, minutes] = schoolEndTime.split(':');
-                    const endHour = parseInt(hours);
-                    
-                    // If school ends at 17:00 (5 PM) or later, can't work
-                    if (endHour >= 17) {
-                        return false;
+                    const endHour = parseInt(schoolEndTime.split(':')[0]);
+                    if (endHour >= 18) {
+                        return false; // School ends too late, no schedule
                     }
                 }
                 
@@ -246,7 +243,8 @@ window.loadSchedule = async function () {
                                                     <option value="Unassigned" ${shift.crewName === "Unassigned" ? "selected" : ""}>Unassigned</option>
                                                     ${dropdownCrew.map(crew => {
                                                         const crewDisplayName = crew.nickname || crew.name;
-                                                        return `<option value="${crewDisplayName}" ${crewDisplayName === shift.crewName || crew.name === shift.crewName ? "selected" : ""}>
+                                                        const isSelected = crewDisplayName === shift.crewName || crew.name === shift.crewName;
+                                                        return `<option value="${crewDisplayName}" ${isSelected ? "selected" : ""}>
                                                             ${crewDisplayName}
                                                         </option>`;
                                                     }).join("")}
@@ -283,6 +281,9 @@ window.loadSchedule = async function () {
                             <p style="margin: 3px 0; text-align: left;">PLEASE CALL STORE OR SEND MESSAGE IN OUR</p>
                             <p style="margin: 3px 0; text-align: left;">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</p>
                             <p style="margin: 3px 0; text-align: left;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</p>
+                            <hr style="margin: 8px 0; border: 1px solid #FFC700;">
+                            <p style="margin: 3px 0; text-align: left; font-weight: bold; color: #DC0000;">INDICATORS:</p>
+                            <p style="margin: 3px 0; text-align: left;">⚠️ = Double Booked (assigned to multiple stations)</p>
                         </div>
                         
                         <div class="save-button-container" style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: auto;">
@@ -470,7 +471,6 @@ window.updateDropdownsForDay = function(day) {
                     // Check if crew is already assigned elsewhere
                     const isDoubleBooked = crewAssignments[crewDisplayName] && crewAssignments[crewDisplayName].length > 1;
                     const label = isDoubleBooked ? `${crewDisplayName} ⚠️` : crewDisplayName;
-                    
                     optionsHtml += `<option value="${crewDisplayName}" ${crewDisplayName === currentValue ? "selected" : ""}>${label}</option>`;
                 }
             });
@@ -482,7 +482,6 @@ window.updateDropdownsForDay = function(day) {
                 // Check if crew is already assigned elsewhere
                 const isDoubleBooked = crewAssignments[crewDisplayName] && crewAssignments[crewDisplayName].length > 1;
                 const label = isDoubleBooked ? `${crewDisplayName} ⚠️` : crewDisplayName;
-                
                 optionsHtml += `<option value="${crewDisplayName}" ${crewDisplayName === currentValue ? "selected" : ""}>${label}</option>`;
             });
         }

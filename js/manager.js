@@ -1467,89 +1467,8 @@ window.generateSchedule = async function () {
             crewAssignmentCount[crew.name] = 0;
         });
 
-        // ===== SMART REST DAY DISTRIBUTION =====
-        
-        crewList.forEach(crew => {
-            const manualRestDays = [];
-            
-            // Check which days manager manually set as rest days
-            days.forEach(day => {
-                if (crew.restDays?.[day] === true) {
-                    manualRestDays.push(day);
-                }
-            });
-            
-            // If manager set NO manual rest days, apply automatic rest days based on attendance priority
-            if (manualRestDays.length === 0) {
-                const attendancePriority = crew.attendancePriority || 3;
-                let autoRestDaysNeeded = 1; // Default: everyone gets at least 1 rest day
-                
-                // Determine number of automatic rest days based on attendance priority
-                if (attendancePriority === 5) {
-                    autoRestDaysNeeded = 1; // Always Present: 1 rest day
-                } else if (attendancePriority === 4) {
-                    autoRestDaysNeeded = 1; // Reliable: 1 rest day
-                } else if (attendancePriority === 3) {
-                    autoRestDaysNeeded = 1; // Normal: 1 rest day
-                } else if (attendancePriority === 2) {
-                    autoRestDaysNeeded = 2; // Sometimes Absent: 2 rest days
-                } else if (attendancePriority === 1) {
-                    autoRestDaysNeeded = 2; // Often Absent: 2 rest days
-                }
-                
-                console.log(`  → ${crew.name}: Attendance Priority ${attendancePriority}, Auto rest days needed: ${autoRestDaysNeeded}`);
-                
-                // Initialize restDays if it doesn't exist
-                if (!crew.restDays) {
-                    crew.restDays = {};
-                    days.forEach(day => {
-                        crew.restDays[day] = false;
-                    });
-                }
-                
-                // Better distribution: Spread rest days across the week based on crew name
-                const nameHash = crew.name.split('').reduce((hash, char) => hash + char.charCodeAt(0), 0);
-                let assignedRestDays = 0;
-                
-                // Distribute rest days more evenly across all days
-                const dayPriority = ["Sunday", "Saturday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-                
-                // Use name hash to determine starting day for this crew member
-                const startDayIndex = nameHash % dayPriority.length;
-                
-                // Try to assign rest days starting from the crew's "assigned" day
-                for (let i = 0; i < dayPriority.length && assignedRestDays < autoRestDaysNeeded; i++) {
-                    const dayIndex = (startDayIndex + i) % dayPriority.length;
-                    const day = dayPriority[dayIndex];
-                    
-                    // Simple assignment: assign rest days in order until we reach the needed amount
-                    if (assignedRestDays < autoRestDaysNeeded) {
-                        // Use hash to determine if this crew gets this day as rest day
-                        const shouldAssign = (nameHash + i) % 3 === 0;
-                        
-                        if (shouldAssign) {
-                            crew.restDays[day] = true;
-                            assignedRestDays++;
-                        }
-                    }
-                }
-                
-                // Fallback: If still need rest days, assign to the first available days
-                if (assignedRestDays < autoRestDaysNeeded) {
-                    for (let i = 0; i < dayPriority.length && assignedRestDays < autoRestDaysNeeded; i++) {
-                        const day = dayPriority[i];
-                        if (!crew.restDays[day]) {
-                            crew.restDays[day] = true;
-                            assignedRestDays++;
-                        }
-                    }
-                }
-                
-                console.log(`  → ${crew.name}: Total rest days assigned = ${assignedRestDays}`);
-            } else {
-                console.log(`  → ${crew.name}: Using manager-set rest days only: [${manualRestDays.join(', ')}]`);
-            }
-        });
+        // Rest days are 100% manual - set by manager in crew profiles only
+        // No automatic rest day assignment - generator respects whatever the manager configured
         
         days.forEach((day, dayIndex) => {
             const baseDateParts = correctedStartDate.split("-");
@@ -1558,25 +1477,79 @@ window.generateSchedule = async function () {
             currentDate.setDate(baseDate.getDate() + dayIndex);
             const formattedDate = new Date(currentDate.getTime() - currentDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
 
-            // Get all crew available for this day
+            // Get all crew available for this day (including emergency rest day override)
             const allDayCrewPool = crewList.filter(crew => {
-                if (crew.restDays?.[day] === true) return false;
-                if (crew.unavailableDates.includes(formattedDate)) return false;
+                // Always exclude unavailable dates (hard constraint)
+                if (crew.unavailableDates.includes(formattedDate)) {
+                    console.log(`  ${crew.name} filtered out - unavailable date ${formattedDate}`);
+                    return false;
+                }
                 
                 const noClass = crew.noClass?.[day] === true;
-                if (noClass) return true;
+                if (noClass) {
+                    console.log(`  ${crew.name} available - no class on ${day}`);
+                    return true;
+                }
                 
                 // Check if school schedule blocks the ENTIRE day (5 PM or later end time)
                 const schoolEndTime = crew.schoolEndTime?.[day];
                 if (schoolEndTime && schoolEndTime !== "") {
                     const [hours] = schoolEndTime.split(':');
-                    if (parseInt(hours) >= 17) return false;
+                    const endHour = parseInt(hours);
+                    console.log(`  ${crew.name} school ends at ${schoolEndTime} (${endHour} hours) on ${day}`);
+                    // If school ends at 6 PM (18:00) or later, crew cannot work at all that day
+                    if (endHour >= 18) {
+                        console.log(`  ${crew.name} filtered out - school ends too late (${endHour} >= 18), no schedule`);
+                        return false;
+                    }
                 }
                 
+                // Also block if school STARTS very early and runs all day (school start with no end = full day)
+                const schoolStartTime = crew.schoolStartTime?.[day];
+                if (schoolStartTime && schoolStartTime !== "" && (!schoolEndTime || schoolEndTime === "")) {
+                    console.log(`  ${crew.name} has school start at ${schoolStartTime} but no end time on ${day} - skipping`);
+                    return false;
+                }
+                
+                console.log(`  ${crew.name} available for ${day}`);
                 return true;
             });
 
-            let availableCrew = [...allDayCrewPool];
+            // Only regular available crew (no rest day overrides)
+            const regularAvailableCrew = allDayCrewPool.filter(crew => crew.restDays?.[day] !== true);
+            let availableCrew = [...regularAvailableCrew];
+            
+            // For working students: track who had closing yesterday (for opening shift blocking)
+            const studentsWithClosingYesterday = new Set();
+            if (dayIndex > 0) {
+                const previousDay = days[dayIndex - 1];
+                const previousDaySchedule = scheduleData[previousDay] || [];
+                
+                console.log(`\n📋 Checking next-day opening restrictions for ${day} (previous: ${previousDay})`);
+                
+                availableCrew.forEach(crew => {
+                    if (crew.roleType !== "student") return; // Only applies to students
+                    
+                    // Check if this student had a closing shift yesterday
+                    const hadClosingYesterday = previousDaySchedule.some(shift => {
+                        const crewDisplayName = crew.nickname || crew.name;
+                        const shiftType = (shift.type || "").toLowerCase();
+                        return (shift.crewName === crewDisplayName || shift.crewName === crew.name) && shiftType === "closing";
+                    });
+                    
+                    if (hadClosingYesterday) {
+                        const canOpenToday = crew.canWorkOpeningNextDay?.[day] === true;
+                        console.log(`  ${crew.name} (student) had closing ${previousDay}: canOpenToday=${canOpenToday}`);
+                        
+                        if (!canOpenToday) {
+                            console.log(`  ❌ ${crew.name} blocked from OPENING today - had closing yesterday and "can open next day" not checked`);
+                            studentsWithClosingYesterday.add(crew.name);
+                        } else {
+                            console.log(`  ✅ ${crew.name} allowed to open today - "can open next day" is checked`);
+                        }
+                    }
+                });
+            }
 
             if (availableCrew.length === 0) {
                 alert(`No crew available for ${day}.`);
@@ -1584,6 +1557,59 @@ window.generateSchedule = async function () {
             }
 
             scheduleData[day] = [];
+
+            // Standalone school schedule checker - takes shift times as parameters
+            // Used by rebalancing steps where the shift loop closure is no longer valid
+            const canCrewWorkThisShift = (crew, shiftStartTime, shiftEndTime, shiftTypeStr) => {
+                const noClass = crew.noClass?.[day] === true;
+                if (noClass) {
+                    const noClassPref = (crew.noClassPreference?.[day] || "any").toLowerCase();
+                    const normalizedType = (shiftTypeStr || "").toLowerCase();
+                    if (noClassPref === "opening" && normalizedType !== "opening") return false;
+                    if (noClassPref === "closing" && normalizedType !== "closing") return false;
+                    return true;
+                }
+
+                const startMatch = shiftStartTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                const endMatch = shiftEndTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                if (!startMatch || !endMatch) return true;
+
+                let sH = parseInt(startMatch[1]), sM = parseInt(startMatch[2]);
+                const sP = startMatch[3].toUpperCase();
+                if (sP === 'PM' && sH < 12) sH += 12;
+                if (sP === 'AM' && sH === 12) sH = 0;
+
+                let eH = parseInt(endMatch[1]), eM = parseInt(endMatch[2]);
+                const eP = endMatch[3].toUpperCase();
+                if (eP === 'PM' && eH < 12) eH += 12;
+                if (eP === 'AM' && eH === 12) eH = 0;
+                if (eH === 0 && eP === 'AM') eH = 24;
+
+                // --- SCHOOL TIME CHECKS (same logic as canWorkShift) ---
+                // Normalize shift type to lowercase for comparison
+                const normalizedShiftType = (shiftTypeStr || "").toLowerCase();
+                
+                // Opening shifts: crew can work if shift ENDS before school STARTS
+                if (normalizedShiftType === "opening") {
+                    const schoolStart = crew.schoolStartTime?.[day];
+                    if (schoolStart && schoolStart !== "") {
+                        const [ssH, ssM] = schoolStart.split(':').map(Number);
+                        if (eH > ssH || (eH === ssH && eM > ssM)) return false;
+                    }
+                }
+                
+                // Closing shifts: crew can work anytime (they can start before school ends, work until school starts next day)
+                // No school time restrictions for closing shifts
+
+                return true;
+            };
+
+            // Count how many shifts exist for each station (to distribute crew fairly)
+            const shiftCountByStation = {};
+            shiftTemplates[day].forEach(shift => {
+                const key = `${shift.station}-${shift.type}`;
+                shiftCountByStation[key] = (shiftCountByStation[key] || 0) + 1;
+            });
 
             for (const shift of shiftTemplates[day]) {
                 let assignedCrew = null;
@@ -1599,62 +1625,68 @@ window.generateSchedule = async function () {
                     if (noClass) {
                         // Check no class preference
                         const noClassPref = (crew.noClassPreference?.[day] || "any").toLowerCase();
-                        if (noClassPref === "opening" && shiftType !== "opening") return false;
-                        if (noClassPref === "closing" && shiftType !== "closing") return false;
+                        const normalizedType = (shiftType || "").toLowerCase();
+                        if (noClassPref === "opening" && normalizedType !== "opening") return false;
+                        if (noClassPref === "closing" && normalizedType !== "closing") return false;
                         return true;
                     }
                     
-                    // Parse shift times
+                    // Parse shift times (AM/PM format like "5:30AM", "2:00PM")
                     const shiftStartMatch = shift.startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
                     const shiftEndMatch = shift.endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
                     
                     if (!shiftStartMatch || !shiftEndMatch) return true; // Can't parse, allow
                     
-                    // Convert shift start time to 24-hour
+                    // Convert shift start to 24-hour
                     let shiftStartHour = parseInt(shiftStartMatch[1]);
                     const shiftStartMinute = parseInt(shiftStartMatch[2]);
                     const shiftStartPeriod = shiftStartMatch[3].toUpperCase();
                     if (shiftStartPeriod === 'PM' && shiftStartHour < 12) shiftStartHour += 12;
                     if (shiftStartPeriod === 'AM' && shiftStartHour === 12) shiftStartHour = 0;
                     
-                    // Convert shift end time to 24-hour
+                    // Convert shift end to 24-hour
                     let shiftEndHour = parseInt(shiftEndMatch[1]);
                     const shiftEndMinute = parseInt(shiftEndMatch[2]);
                     const shiftEndPeriod = shiftEndMatch[3].toUpperCase();
                     if (shiftEndPeriod === 'PM' && shiftEndHour < 12) shiftEndHour += 12;
                     if (shiftEndPeriod === 'AM' && shiftEndHour === 12) shiftEndHour = 0;
+                    // Handle midnight crossover (e.g. shift ends at 12:00AM = 24:00)
+                    if (shiftEndHour === 0 && shiftEndPeriod === 'AM') shiftEndHour = 24;
                     
-                    // Check school start time conflict
-                    const schoolStartTime = crew.schoolStartTime?.[day];
-                    if (schoolStartTime && schoolStartTime !== "") {
-                        const [schoolStartHour, schoolStartMinute] = schoolStartTime.split(':').map(Number);
-                        
-                        // If shift ends AFTER school starts = conflict
-                        // Example: Shift 5:30 AM - 2:30 PM, School starts 8:00 AM = conflict
-                        if (shiftEndHour > schoolStartHour || (shiftEndHour === schoolStartHour && shiftEndMinute > schoolStartMinute)) {
-                            console.log(`  ${crew.name} filtered out from ${shift.station} (${shift.startTime}-${shift.endTime}) - shift ends after school starts at ${schoolStartTime} on ${day}`);
-                            return false;
+                    // --- SCHOOL TIME CHECKS ---
+                    // Normalize shift type to lowercase for comparison
+                    const normalizedShiftType = (shiftType || "").toLowerCase();
+                    
+                    // Opening shifts: crew can work if shift ENDS before school STARTS
+                    if (normalizedShiftType === "opening") {
+                        const schoolStartTime = crew.schoolStartTime?.[day];
+                        if (schoolStartTime && schoolStartTime !== "") {
+                            const schoolStartParts = schoolStartTime.split(':');
+                            if (schoolStartParts.length === 2) {
+                                const schoolStartHour = parseInt(schoolStartParts[0]);
+                                const schoolStartMinute = parseInt(schoolStartParts[1]);
+                                // Shift ends after school starts = conflict
+                                if (shiftEndHour > schoolStartHour || (shiftEndHour === schoolStartHour && shiftEndMinute > schoolStartMinute)) {
+                                    console.log(`  ${crew.name} blocked from ${shift.station} (${shift.startTime}-${shift.endTime}) - opening shift ends after school starts ${schoolStartTime}`);
+                                    return false;
+                                }
+                            }
                         }
                     }
                     
-                    // Check school end time conflict
-                    const schoolEndTime = crew.schoolEndTime?.[day];
-                    if (schoolEndTime && schoolEndTime !== "") {
-                        const [schoolEndHour, schoolEndMinute] = schoolEndTime.split(':').map(Number);
-                        
-                        // If shift starts BEFORE school ends = conflict
-                        // Example: Shift 2:30 PM - 12:00 AM, School ends 6:00 PM = conflict
-                        if (shiftStartHour < schoolEndHour || (shiftStartHour === schoolEndHour && shiftStartMinute < schoolEndMinute)) {
-                            console.log(`  ${crew.name} filtered out from ${shift.station} (${shift.startTime}-${shift.endTime}) - shift starts before school ends at ${schoolEndTime} on ${day}`);
-                            return false;
-                        }
-                    }
+                    // Closing shifts: crew can work anytime (they can start before school ends, work until school starts next day)
+                    // No school time restrictions for closing shifts
                     
                     return true;
                 };
 
                 // Helper: Check if shift preference matches (with flexibility for balance)
                 const matchesPreference = (crew, strict = true) => {
+                    // Block students from opening if they had closing yesterday (unless "can open next day" is checked)
+                    if (shiftType === "opening" && studentsWithClosingYesterday.has(crew.name)) {
+                        return false;
+                    }
+                    
                     const shiftPref = (crew.shiftPreference || "flexible").toLowerCase();
                     if (shiftPref === "flexible") return true; // Flexible can work any shift
                     
@@ -1846,70 +1878,56 @@ window.generateSchedule = async function () {
                     }
                 }
 
-                // Step 6: Flexible preference matching for balance
+                // No Step 6 or 7 - only assign crew who match station AND preference
+                // If no one matches, leave Unassigned
+                
+                // Step 6: Any qualified crew (top or secondary) with matching preference
                 if (!assignedCrew) {
                     candidates = availableCrew.filter(crew => {
                         const topPriority = crew.topPriorityStation || "";
                         const secondaryStations = crew.secondaryStations || [];
                         const hasStation = topPriority === shift.station || secondaryStations.includes(shift.station);
-                        return hasStation && canWorkShift(crew) && matchesPreference(crew, false); // Non-strict preference
+                        return hasStation && canWorkShift(crew) && matchesPreference(crew, true);
                     });
                     
                     candidates.sort((a, b) => {
+                        // Seniority first (rank 1-2 are high priority)
+                        const aRank = a.seniorityRank || 999;
+                        const bRank = b.seniorityRank || 999;
+                        if (aRank !== bRank) return aRank - bRank;
+                        
+                        // Top priority station second
+                        const aIsTop = a.topPriorityStation === shift.station ? 1 : 0;
+                        const bIsTop = b.topPriorityStation === shift.station ? 1 : 0;
+                        if (aIsTop !== bIsTop) return bIsTop - aIsTop;
+                        
+                        // Then by attendance
                         const attendanceA = a.attendancePriority || 3;
                         const attendanceB = b.attendancePriority || 3;
-                        
-                        // Prioritize by attendance, then by assignment balance
                         if (attendanceB !== attendanceA) return attendanceB - attendanceA;
+                        
+                        // Then by assignment count
                         return crewAssignmentCount[a.name] - crewAssignmentCount[b.name];
                     });
                     
-                    console.log(`  Step 6 (flexible preference for balance): ${candidates.length} candidates`);
+                    console.log(`  Step 6 (any qualified + preference): ${candidates.length} candidates`);
                     if (candidates.length > 0) {
                         assignedCrew = candidates[0];
-                        console.log(`    → Using: ${assignedCrew.name} (flexible assignment for balance, pref: ${assignedCrew.shiftPreference}, attendance: ${assignedCrew.attendancePriority || 3})`);
+                        console.log(`    → Using: ${assignedCrew.name} (rank ${assignedCrew.seniorityRank || 'N/A'}, qualified for ${shift.station}, pref: ${assignedCrew.shiftPreference}, attendance: ${assignedCrew.attendancePriority || 3})`);
                     }
                 }
 
-                // Step 7: Intelligent fallback - assign crew with ANY station qualification
-                // Step 7: Intelligent fallback - assign crew with ANY station qualification
-                if (!assignedCrew && availableCrew.length > 0) {
-                    // Filter crew who have this station in their top priority OR secondary stations
-                    const qualifiedCrew = availableCrew.filter(crew => {
-                        const topPriority = crew.topPriorityStation || "";
-                        const secondaryStations = crew.secondaryStations || [];
-                        return topPriority === shift.station || secondaryStations.includes(shift.station);
-                    });
-                    
-                    if (qualifiedCrew.length > 0) {
-                        // Sort qualified crew by attendance priority and assignment count
-                        qualifiedCrew.sort((a, b) => {
-                            const attendanceA = a.attendancePriority || 3;
-                            const attendanceB = b.attendancePriority || 3;
-                            if (attendanceB !== attendanceA) return attendanceB - attendanceA;
-                            return crewAssignmentCount[a.name] - crewAssignmentCount[b.name];
-                        });
-                        
-                        assignedCrew = qualifiedCrew[0];
-                        console.log(`  🔄 Intelligent fallback: Assigned ${assignedCrew.name} (qualified for ${shift.station})`);
-                    }
-                }
-
-                // Step 8: Leave as Unassigned only if no qualified crew available
+                // Only truly Unassigned if no qualified crew available
                 if (!assignedCrew) {
                     console.log(`  ⚠️ No qualified crew available for ${shift.station} - leaving Unassigned`);
                 }
 
                 const crewName = assignedCrew ? (assignedCrew.nickname || assignedCrew.name) : "Unassigned";
                 
-                console.log(`${day} - ${shift.station} (${shift.type}): Assigned ${crewName}`);
-                
                 if (assignedCrew) {
-                    console.log(`  ✅ Assigned: ${assignedCrew.name}`);
-                    crewAssignmentCount[assignedCrew.name]++; // Track assignment for balancing
+                    crewAssignmentCount[assignedCrew.name]++;
+                    // CREW CAN ONLY WORK ONE SHIFT PER DAY - Remove from availableCrew after assignment
                     availableCrew = availableCrew.filter(crew => crew.name !== assignedCrew.name);
-                } else {
-                    console.error(`  ❌ FAILED - NO QUALIFIED CREW AVAILABLE`);
                 }
 
                 scheduleData[day].push({
@@ -1955,7 +1973,7 @@ window.generateSchedule = async function () {
             console.log(`\n  STEP 1: Seniority Priority`);
             const unassignedSeniors = allDayCrewPool.filter(crew => {
                 const rank = crew.seniorityRank || 999;
-                return rank <= 2 && !isCrewAssigned(crew);
+                return rank <= 2 && !isCrewAssigned(crew) && crew.restDays?.[day] !== true;
             });
             
             console.log(`  Found ${unassignedSeniors.length} unassigned seniors (rank 1-2)`);
@@ -1972,12 +1990,17 @@ window.generateSchedule = async function () {
                     const shift = scheduleData[day][i];
                     if (shift.crewName === "Unassigned") continue;
                     
+                    // CRITICAL: Re-check if senior is already assigned (state may have changed after previous swaps)
+                    const alreadyAssigned = scheduleData[day].some(s => s.crewName === seniorDisplayName);
+                    if (alreadyAssigned) break;
+                    
                     // Check if senior can work this station
                     if (!seniorStations.includes(shift.station)) continue;
                     
-                    // Check shift preference
+                    // Check shift preference AND school schedule
                     const shiftType = (shift.type || "").toLowerCase();
                     if (!canWorkShiftType(senior, shiftType)) continue;
+                    if (!canCrewWorkThisShift(senior, shift.startTime, shift.endTime, shiftType)) continue; // School schedule check
                     
                     // Find the currently assigned crew
                     const currentCrew = findCrewInSchedule(shift.crewName);
@@ -2002,6 +2025,7 @@ window.generateSchedule = async function () {
                         const openShiftType = (openShift.type || "").toLowerCase();
                         if (!juniorStations.includes(openShift.station)) continue;
                         if (!canWorkShiftType(currentCrew, openShiftType)) continue;
+                        if (!canCrewWorkThisShift(currentCrew, openShift.startTime, openShift.endTime, openShiftType)) continue;
                         
                         juniorNewShiftIndex = j;
                         break;
@@ -2058,18 +2082,20 @@ window.generateSchedule = async function () {
                     const isBetterStation = openShift.station === crew.topPriorityStation;
                     if (!isBetterStation) continue;
                     
-                    // Check shift preference
+                    // Check shift preference AND school schedule for crew moving to better station
                     if (!canWorkShiftType(crew, openShiftType)) continue;
+                    if (!canCrewWorkThisShift(crew, openShift.startTime, openShift.endTime, openShiftType)) continue;
                     
                     // Now find someone to take the crew's current spot
                     const replacementCrew = allDayCrewPool.find(c => {
-                        if (isCrewAssigned(c)) return false;
-                        
+                        if (c.restDays?.[day] === true) return false; // Respect rest days
+                        const cDisplayName = c.nickname || c.name;
+                        if (scheduleData[day].some(s => s.crewName === cDisplayName)) return false;
                         const canWorkHere = c.topPriorityStation === shift.station || 
                                           (c.secondaryStations || []).includes(shift.station);
                         if (!canWorkHere) return false;
-                        
-                        return canWorkShiftType(c, shiftType);
+                        if (!canWorkShiftType(c, shiftType)) return false;
+                        return canCrewWorkThisShift(c, shift.startTime, shift.endTime, shiftType);
                     });
                     
                     if (replacementCrew) {
@@ -2097,13 +2123,14 @@ window.generateSchedule = async function () {
                 
                 // Find any unassigned crew who can work here
                 const unassignedCrew = allDayCrewPool.find(crew => {
-                    if (isCrewAssigned(crew)) return false;
-                    
+                    if (crew.restDays?.[day] === true) return false; // Respect rest days
+                    const cDisplayName = crew.nickname || crew.name;
+                    if (scheduleData[day].some(s => s.crewName === cDisplayName)) return false;
                     const canWorkHere = crew.topPriorityStation === shift.station || 
                                       (crew.secondaryStations || []).includes(shift.station);
                     if (!canWorkHere) return false;
-                    
-                    return canWorkShiftType(crew, shiftType);
+                    if (!canWorkShiftType(crew, shiftType)) return false;
+                    return canCrewWorkThisShift(crew, shift.startTime, shift.endTime, shiftType);
                 });
                 
                 if (unassignedCrew) {
@@ -2120,7 +2147,8 @@ window.generateSchedule = async function () {
                 type: "MID",
                 startTime: "10:00AM",
                 endTime: "7:00PM",
-                crewName: "Unassigned"
+                crewName: "Unassigned",
+                isSeventhDay: false
             });
             console.log(`  ✅ Added PC station (MID 10:00AM-7:00PM) - Unassigned`);
         });

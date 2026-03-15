@@ -12,25 +12,196 @@
            COMPREHENSIVE RESPONSIVE DESIGN
            ======================================== */
         
-        /* PRINT STYLES */
+        /* Hide print-only elements on screen */
+        .print-header, .print-footer { display: none; }
+
+        /* PRINT STYLES - Short Bond Paper (8.5" x 11"), 1 day per page */
         @media print {
-            .sidebar, .no-print, .mobile-menu-toggle { display: none !important; }
-            body { margin: 0; padding: 0; }
-            .main { margin: 0; padding: 0; width: 100%; }
+            @page {
+                size: 8.5in 11in portrait;
+                margin: 8mm 8mm 8mm 8mm;
+            }
+
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+            .sidebar, .no-print, .mobile-menu-toggle, .save-button-container,
+            .reminder-box, .landscape-banner { display: none !important; }
+
+            body { margin: 0; padding: 0; background: white; }
+            .main { margin: 0 !important; padding: 0 !important; width: 100%; }
             #scheduleContainer { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
-            .day-container { page-break-after: always; page-break-inside: avoid; padding: 8mm !important; margin: 0 !important; box-shadow: none !important; min-height: 100vh; max-height: 100vh; box-sizing: border-box; overflow: hidden; }
+
+            /* Each day = exactly 1 page, fill full height */
+            .day-container {
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                height: 277mm !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
             .day-container:last-child { page-break-after: avoid !important; }
-            .day-container h2 { font-size: 16px !important; margin: 0 0 2px 0 !important; padding: 4px 0 !important; border-bottom: 2px solid #DC0000 !important; text-align: center; color: #DC0000; }
-            .day-container h3 { font-size: 11px !important; margin: 0 0 5px 0 !important; padding: 0 !important; text-align: center; color: #666; }
-            .day-container table { font-size: 9px !important; width: 100% !important; margin: 0 0 5px 0 !important; border-collapse: collapse !important; }
-            .day-container table th { padding: 4px 2px !important; font-size: 9px !important; line-height: 1.1 !important; background: #DC0000 !important; color: white !important; border: 1px solid #666 !important; font-weight: bold !important; }
-            .day-container table td { padding: 2px 1px !important; font-size: 8px !important; line-height: 1.1 !important; border: 1px solid #999 !important; vertical-align: middle !important; }
-            .day-container select { font-size: 8px !important; padding: 1px !important; border: none !important; background: transparent !important; appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important; font-weight: bold !important; width: 100%; }
-            .day-container tbody tr.blank-row td { padding: 2px 1px !important; border: 1px solid #ccc !important; min-height: 12px !important; height: 12px !important; }
-            .blank-input { border: none !important; background: transparent !important; font-size: 8px !important; padding: 0 !important; margin: 0 !important; width: 100% !important; font-family: inherit !important; color: #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .reminder-box { margin-top: 4px !important; padding: 4px 6px !important; font-size: 7px !important; line-height: 1.3 !important; background: #fff3cd !important; border: 1px solid #ffc107 !important; border-radius: 2px !important; page-break-inside: avoid !important; text-align: left !important; }
-            .reminder-box p { margin: 1.5px 0 !important; line-height: 1.3 !important; text-align: left !important; }
-            .save-button-container { display: none !important; }
+
+            /* Hide the default h2/h3 */
+            .day-container > h2,
+            .day-container > h3 { display: none !important; }
+
+            /* ── PRINT HEADER ── */
+            .print-header {
+                display: block !important;
+                width: 100%;
+                border: 2.5px solid #DC0000;
+                margin-bottom: 3px;
+                flex-shrink: 0;
+            }
+            .print-header-date {
+                background: white !important;
+                color: #DC0000 !important;
+                text-align: center;
+                font-size: 18pt !important;
+                font-weight: 900 !important;
+                padding: 5px 0 3px 0;
+                letter-spacing: 1px;
+                border-bottom: 2px solid #DC0000;
+            }
+            .print-header-branch {
+                background: white !important;
+                color: #DC0000 !important;
+                text-align: center;
+                font-size: 10pt !important;
+                font-weight: 600 !important;
+                padding: 3px 0;
+            }
+
+            /* ── TABLE WRAPPER fills remaining space ── */
+            .day-container > div[style*="overflow-x"] {
+                overflow: visible !important;
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+
+            .day-container table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 9pt !important;
+                table-layout: fixed !important;
+                margin: 0 !important;
+                flex: 1 !important;
+            }
+
+            /* Column widths - 8 cols */
+            .day-container table th:nth-child(1),
+            .day-container table td:nth-child(1) { width: 13% !important; }
+            .day-container table th:nth-child(2),
+            .day-container table td:nth-child(2) { width: 16% !important; }
+            .day-container table th:nth-child(3),
+            .day-container table td:nth-child(3) { width: 16% !important; } /* TIME - wide enough */
+            .day-container table th:nth-child(4),
+            .day-container table td:nth-child(4) { width: 6% !important; }
+            .day-container table th:nth-child(5),
+            .day-container table td:nth-child(5) { width: 6% !important; }
+            .day-container table th:nth-child(6),
+            .day-container table td:nth-child(6) { width: 6% !important; }
+            .day-container table th:nth-child(7),
+            .day-container table td:nth-child(7) { width: 6% !important; }
+            .day-container table th:nth-child(8),
+            .day-container table td:nth-child(8) { width: 31% !important; }
+
+            /* Fix rowspan gap: station cell must not reserve space for hidden blank rows */
+            .print-station-cell {
+                font-weight: 700 !important;
+                color: #DC0000 !important;
+                text-align: left !important;
+                font-size: 9pt !important;
+                vertical-align: middle !important;
+                height: auto !important;
+            }
+
+            .day-container table th {
+                background: white !important;
+                color: #DC0000 !important;
+                border: 1.5px solid #000 !important;
+                padding: 4px 2px !important;
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+                text-align: center !important;
+                line-height: 1.2 !important;
+            }
+            .day-container table td {
+                border: 1px solid #000 !important;
+                padding: 8px 3px !important;
+                font-size: 9pt !important;
+                line-height: 1.3 !important;
+                vertical-align: middle !important;
+                text-align: center !important;
+            }
+
+            .print-name-cell {
+                font-weight: 700 !important;
+                text-align: center !important;
+            }
+
+            /* Hide unassigned special stations in print */
+            tr.hide-if-unassigned { display: none !important; }
+
+            /* Blank rows are removed from DOM before print via JS, so no CSS needed */
+
+            /* select → plain text */
+            .day-container select {
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                border: none !important;
+                background: transparent !important;
+                font-size: 9pt !important;
+                font-weight: 700 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                color: #000 !important;
+            }
+
+            .blank-input {
+                border: none !important;
+                background: transparent !important;
+                font-size: 8pt !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
+            /* ── FOOTER ── */
+            .print-footer {
+                display: block !important;
+                margin-top: 4px;
+                width: 100%;
+                flex-shrink: 0;
+            }
+            .print-footer table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 8pt !important;
+            }
+            .print-footer td {
+                border: 1px solid #000 !important;
+                padding: 3px 5px !important;
+                vertical-align: middle !important;
+                font-size: 8pt !important;
+                line-height: 1.4 !important;
+            }
+            .print-footer .yellow-cell {
+                background: #FFFF00 !important;
+                font-weight: 700 !important;
+                text-align: center !important;
+                font-size: 9pt !important;
+            }
+            .print-footer .bold-cell { font-weight: 700 !important; }
+            .print-footer .red-text { color: #DC0000 !important; font-weight: 700 !important; }
         }
         
         /* DEFAULT DESKTOP STYLES */
@@ -149,13 +320,13 @@
         
         /* Desktop column widths - balanced for all content */
         .day-container table th:nth-child(1), .day-container table td:nth-child(1) { width: 15% !important; min-width: 100px; }
-        .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 20% !important; min-width: 120px; }
-        .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 17% !important; min-width: 110px; }
+        .day-container table th:nth-child(2), .day-container table td:nth-child(2) { width: 18% !important; min-width: 120px; }
+        .day-container table th:nth-child(3), .day-container table td:nth-child(3) { width: 20% !important; min-width: 140px; }
         .day-container table th:nth-child(4), .day-container table td:nth-child(4) { width: 6% !important; min-width: 40px; }
         .day-container table th:nth-child(5), .day-container table td:nth-child(5) { width: 6% !important; min-width: 40px; }
         .day-container table th:nth-child(6), .day-container table td:nth-child(6) { width: 6% !important; min-width: 40px; }
         .day-container table th:nth-child(7), .day-container table td:nth-child(7) { width: 6% !important; min-width: 40px; }
-        .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 24% !important; min-width: 150px; }
+        .day-container table th:nth-child(8), .day-container table td:nth-child(8) { width: 23% !important; min-width: 150px; }
         
         /* UNIVERSAL FIX FOR ALL DEVICES */
         @media screen and (max-width: 767px) {
@@ -833,6 +1004,50 @@
                 e.stopPropagation();
             }
         });
+    });
+
+    // ── PRINT: remove blank rows & fix rowspans before printing, restore after ──
+    let _printBackup = null;
+
+    window.addEventListener('beforeprint', function () {
+        _printBackup = [];
+
+        document.querySelectorAll('.day-container tbody').forEach(function (tbody) {
+            // Collect all rows
+            const allRows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Find blank rows and remove them, tracking their positions
+            const blankRows = allRows.filter(r => r.classList.contains('blank-row'));
+            blankRows.forEach(function (row) {
+                _printBackup.push({ row: row, next: row.nextSibling, parent: row.parentNode });
+                row.parentNode.removeChild(row);
+            });
+
+            // Fix station cell rowspans: each station cell now spans only shift rows (no blank rows)
+            tbody.querySelectorAll('td.print-station-cell').forEach(function (cell) {
+                const currentSpan = parseInt(cell.getAttribute('rowspan') || '1');
+                const newSpan = Math.ceil(currentSpan / 2); // was shifts.length * 2, now shifts.length
+                cell.setAttribute('rowspan', newSpan);
+                cell.setAttribute('data-orig-rowspan', currentSpan); // save for restore
+            });
+        });
+    });
+
+    window.addEventListener('afterprint', function () {
+        // Restore station cell rowspans first
+        document.querySelectorAll('td.print-station-cell[data-orig-rowspan]').forEach(function (cell) {
+            cell.setAttribute('rowspan', cell.getAttribute('data-orig-rowspan'));
+            cell.removeAttribute('data-orig-rowspan');
+        });
+
+        // Re-insert blank rows in reverse order so positions stay correct
+        if (_printBackup) {
+            for (let i = _printBackup.length - 1; i >= 0; i--) {
+                const { row, next, parent } = _printBackup[i];
+                parent.insertBefore(row, next);
+            }
+            _printBackup = null;
+        }
     });
 </script>
 

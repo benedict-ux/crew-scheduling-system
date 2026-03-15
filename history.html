@@ -8,89 +8,165 @@
     <!-- SheetJS library for Excel export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
+        /* Hide print-only elements on screen */
+        .hist-print-header, .hist-print-footer { display: none; }
+
         @media print {
-            /* Hide everything when printing */
-            body.printing > *:not(#printContainer) {
-                display: none !important;
+            @page {
+                size: 8.5in 11in portrait;
+                margin: 8mm 8mm 8mm 8mm;
             }
-            
-            body.printing {
-                margin: 0;
-                padding: 0;
-            }
-            
-            #printContainer {
-                display: block !important;
-            }
-            
+
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+            /* Hide everything except print container */
+            body.printing > *:not(#printContainer) { display: none !important; }
+            body.printing { margin: 0; padding: 0; }
+            #printContainer { display: block !important; }
+
+            /* Each day = 1 page */
             .day-schedule {
-                page-break-after: always;
-                page-break-inside: avoid;
-                padding: 2px;
-                margin: 0;
+                page-break-after: always !important;
+                page-break-inside: avoid !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+                border: none !important;
+                border-radius: 0 !important;
+                width: 100% !important;
+                height: 277mm !important;
+                display: flex !important;
+                flex-direction: column !important;
             }
-            
-            .day-schedule:last-child {
-                page-break-after: auto;
-            }
-            
-            .day-schedule h3 {
-                font-size: 12px;
-                margin: 1px 0;
-                padding: 5px;
-                background: #007bff;
-                color: white;
-                border-radius: 5px;
-            }
-            
-            .day-schedule table {
+            .day-schedule:last-child { page-break-after: avoid !important; }
+
+            /* Hide screen-only day header */
+            .day-schedule > h3.screen-day-header { display: none !important; }
+
+            /* Print header */
+            .hist-print-header {
+                display: block !important;
                 width: 100%;
-                border-collapse: collapse;
-                font-size: 8px;
+                border: 2.5px solid #DC0000;
+                margin-bottom: 3px;
+                flex-shrink: 0;
             }
-            
-            .day-schedule th, .day-schedule td {
-                border: 1px solid #000;
-                padding: 2px 3px;
-                line-height: 1.1;
+            .hist-print-header-date {
+                background: white !important;
+                color: #DC0000 !important;
+                text-align: center;
+                font-size: 18pt !important;
+                font-weight: 900 !important;
+                padding: 5px 0 3px 0;
+                letter-spacing: 1px;
+                border-bottom: 2px solid #DC0000;
             }
-            
-            .day-schedule th {
-                background: #f8f9fa;
-                font-size: 8px;
-                padding: 3px;
+            .hist-print-header-branch {
+                background: white !important;
+                color: #DC0000 !important;
+                text-align: center;
+                font-size: 10pt !important;
+                font-weight: 600 !important;
+                padding: 3px 0;
             }
-            
-            .day-schedule td {
-                font-size: 8px;
-                height: 14px;
+
+            /* Table wrapper fills remaining space */
+            .day-schedule > .hist-table-wrap {
+                flex: 1 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: visible !important;
             }
-            
-            /* Make station and name columns more readable */
-            .day-schedule td:nth-child(1) {
-                font-weight: bold;
-                font-size: 8px;
+
+            .day-schedule table.hist-sched-table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 9pt !important;
+                table-layout: fixed !important;
+                margin: 0 !important;
+                flex: 1 !important;
             }
-            
-            .day-schedule td:nth-child(2) {
-                font-weight: bold;
-                font-size: 9px;
+
+            /* Column widths */
+            .day-schedule table.hist-sched-table th:nth-child(1),
+            .day-schedule table.hist-sched-table td:nth-child(1) { width: 13% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(2),
+            .day-schedule table.hist-sched-table td:nth-child(2) { width: 16% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(3),
+            .day-schedule table.hist-sched-table td:nth-child(3) { width: 16% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(4),
+            .day-schedule table.hist-sched-table td:nth-child(4) { width: 6% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(5),
+            .day-schedule table.hist-sched-table td:nth-child(5) { width: 6% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(6),
+            .day-schedule table.hist-sched-table td:nth-child(6) { width: 6% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(7),
+            .day-schedule table.hist-sched-table td:nth-child(7) { width: 6% !important; }
+            .day-schedule table.hist-sched-table th:nth-child(8),
+            .day-schedule table.hist-sched-table td:nth-child(8) { width: 31% !important; }
+
+            .day-schedule table.hist-sched-table th {
+                background: white !important;
+                color: #DC0000 !important;
+                border: 1.5px solid #000 !important;
+                padding: 4px 2px !important;
+                font-size: 8pt !important;
+                font-weight: 700 !important;
+                text-align: center !important;
+                line-height: 1.2 !important;
             }
-            
-            .reminder-box {
-                margin-top: 3px;
-                padding: 3px 5px;
-                background: #fff3cd;
-                border: 2px solid #ffc107;
-                border-radius: 5px;
-                font-size: 6.5px;
-                line-height: 1.3;
+            .day-schedule table.hist-sched-table td {
+                border: 1px solid #000 !important;
+                padding: 8px 3px !important;
+                font-size: 9pt !important;
+                line-height: 1.3 !important;
+                vertical-align: middle !important;
+                text-align: center !important;
             }
-            
-            .reminder-box p {
-                margin: 1px 0;
-                line-height: 1.3;
+            .hist-station-cell {
+                font-weight: 700 !important;
+                color: #DC0000 !important;
+                text-align: left !important;
+                font-size: 9pt !important;
+                vertical-align: middle !important;
             }
+            .hist-name-cell { font-weight: 700 !important; }
+
+            /* Blank rows removed by JS before print */
+
+            /* Hide unassigned special stations */
+            tr.hide-if-unassigned { display: none !important; }
+
+            /* Hide screen-only reminder box */
+            .reminder-box { display: none !important; }
+
+            /* Print footer */
+            .hist-print-footer {
+                display: block !important;
+                margin-top: 4px;
+                width: 100%;
+                flex-shrink: 0;
+            }
+            .hist-print-footer table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                font-size: 8pt !important;
+            }
+            .hist-print-footer td {
+                border: 1px solid #000 !important;
+                padding: 3px 5px !important;
+                vertical-align: middle !important;
+                font-size: 8pt !important;
+                line-height: 1.4 !important;
+            }
+            .hist-print-footer .yellow-cell {
+                background: #FFFF00 !important;
+                font-weight: 700 !important;
+                text-align: center !important;
+                font-size: 9pt !important;
+            }
+            .hist-print-footer .bold-cell { font-weight: 700 !important; }
+            .hist-print-footer .red-text { color: #DC0000 !important; font-weight: 700 !important; }
         }
     </style>
 </head>
@@ -184,6 +260,40 @@
                 }
             }
         }, true);
+    });
+
+    // ── PRINT: remove blank rows & fix rowspans before printing, restore after ──
+    let _histPrintBackup = null;
+
+    window.addEventListener('beforeprint', function () {
+        _histPrintBackup = [];
+        document.querySelectorAll('.day-schedule tbody').forEach(function (tbody) {
+            const blankRows = Array.from(tbody.querySelectorAll('tr.hist-blank-row'));
+            blankRows.forEach(function (row) {
+                _histPrintBackup.push({ row: row, next: row.nextSibling, parent: row.parentNode });
+                row.parentNode.removeChild(row);
+            });
+            tbody.querySelectorAll('td.hist-station-cell').forEach(function (cell) {
+                const currentSpan = parseInt(cell.getAttribute('rowspan') || '1');
+                const newSpan = Math.ceil(currentSpan / 2);
+                cell.setAttribute('rowspan', newSpan);
+                cell.setAttribute('data-orig-rowspan', currentSpan);
+            });
+        });
+    });
+
+    window.addEventListener('afterprint', function () {
+        document.querySelectorAll('td.hist-station-cell[data-orig-rowspan]').forEach(function (cell) {
+            cell.setAttribute('rowspan', cell.getAttribute('data-orig-rowspan'));
+            cell.removeAttribute('data-orig-rowspan');
+        });
+        if (_histPrintBackup) {
+            for (let i = _histPrintBackup.length - 1; i >= 0; i--) {
+                const { row, next, parent } = _histPrintBackup[i];
+                parent.insertBefore(row, next);
+            }
+            _histPrintBackup = null;
+        }
     });
 </script>
 

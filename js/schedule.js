@@ -189,10 +189,20 @@ window.loadSchedule = async function () {
                 }];
             }
 
+            // Format date for print header e.g. "MARCH 16, 2026 (MONDAY)"
+            const monthNames = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+            const printDateLabel = `DATE: ${monthNames[currentDayObj.getMonth()]} ${currentDayObj.getDate()}, ${currentDayObj.getFullYear()} (${day.toUpperCase()})`;
+
             container.innerHTML += `
                 <div id="day-${day}" class="day-container">
                     <h2>${day}</h2>
                     <h3>DATE: ${formattedDate}</h3>
+
+                    <!-- Print-only header -->
+                    <div class="print-header">
+                        <div class="print-header-date">${printDateLabel}</div>
+                        <div class="print-header-branch">JOLLIBEE EDSA KAMIAS</div>
+                    </div>
                     
                     <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
                     <table class="schedule-table">
@@ -214,57 +224,54 @@ window.loadSchedule = async function () {
                                 if (shifts.length === 0) return '';
                                 
                                 return shifts.map((shift, idx) => {
-                                    // For PC station, show ALL crew with PC as top priority or secondary station
                                     let dropdownCrew;
                                     if (stationName === "PC") {
                                         dropdownCrew = crewData.filter(crew => {
                                             const hasPCStation = crew.topPriorityStation === "PC" || (crew.secondaryStations || []).includes("PC");
-                                            return hasPCStation; // Show all crew with PC station
+                                            return hasPCStation;
                                         });
                                     } else {
-                                        // Show ALL crew members for all other stations
                                         dropdownCrew = crewData;
                                     }
                                     
-                                    // Generate unique ID for Mid shifts
                                     const shiftId = shift.originalIndex === -1 ? 
                                         `mid-${day}-${stationName}` : 
                                         `shift-${day}-${shift.originalIndex}`;
                                     
-                                    // Main row + 1 blank row
+                                    const hideWhenUnassigned = ["PC", "MID", "MID-DINING", "MID-KITCHEN"];
+                                    const isUnassigned = shift.crewName === "Unassigned";
+                                    const shouldHideClass = hideWhenUnassigned.includes(stationName) && isUnassigned ? 'hide-if-unassigned' : '';
+
+                                    // rowspan * 2 covers all shift rows + blank rows (original working approach)
+                                    const stationCell = idx === 0
+                                        ? `<td rowspan="${shifts.length * 2}" class="print-station-cell" style="font-weight:bold;vertical-align:middle;background:#f8f9fa;color:#DC0000;">${stationName}</td>`
+                                        : '';
+
                                     return `
-                                        <tr>
-                                            ${idx === 0 ? `<td rowspan="${shifts.length * 2}" style="font-weight: bold; vertical-align: top; background: #f8f9fa;">${stationName}</td>` : ''}
-                                            <td>
+                                        <tr class="${shouldHideClass}">
+                                            ${stationCell}
+                                            <td class="print-name-cell">
                                                 <select id="${shiftId}" 
                                                     onchange="updateDropdownsForDay('${day}')" 
                                                     onfocus="this.dataset.oldValue = this.value"
                                                     onkeydown="preventArrowKeyChange(event, this)">
-                                                    <option value="Unassigned" ${shift.crewName === "Unassigned" ? "selected" : ""}>Unassigned</option>
+                                                    <option value="Unassigned" ${isUnassigned ? "selected" : ""}>Unassigned</option>
                                                     ${dropdownCrew.map(crew => {
                                                         const crewDisplayName = crew.nickname || crew.name;
                                                         const isSelected = crewDisplayName === shift.crewName || crew.name === shift.crewName;
-                                                        return `<option value="${crewDisplayName}" ${isSelected ? "selected" : ""}>
-                                                            ${crewDisplayName}
-                                                        </option>`;
+                                                        return `<option value="${crewDisplayName}" ${isSelected ? "selected" : ""}>${crewDisplayName}</option>`;
                                                     }).join("")}
                                                 </select>
                                             </td>
-                                            <td style="text-align: center; white-space: nowrap;">${shift.startTime}-${shift.endTime}</td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
-                                            <td style="background: #fafafa;"></td>
+                                            <td style="text-align:center;white-space:nowrap;min-width:130px;">${shift.startTime}-${shift.endTime}</td>
+                                            <td style="background:#fafafa;"></td>
+                                            <td style="background:#fafafa;"></td>
+                                            <td style="background:#fafafa;"></td>
+                                            <td style="background:#fafafa;"></td>
+                                            <td style="background:#fafafa;"></td>
                                         </tr>
-                                        <tr class="blank-row">
-                                            <td><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
-                                            <td><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
-                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
-                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
-                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
-                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
-                                            <td style="background: #fafafa;"><input type="text" class="blank-input" placeholder="" style="width: 100%; border: none; background: transparent; font-size: 12px; padding: 5px 2px; font-family: inherit;"></td>
+                                        <tr class="blank-row ${shouldHideClass}">
+                                            <td colspan="7" style="padding:4px;border:1px solid #eee;"><input type="text" class="blank-input" style="width:100%;border:none;background:transparent;font-size:12px;padding:2px;font-family:inherit;"></td>
                                         </tr>
                                     `;
                                 }).join('');
@@ -272,18 +279,36 @@ window.loadSchedule = async function () {
                         </tbody>
                     </table>
                     </div>
+
+                    <!-- Print-only footer reminders -->
+                    <div class="print-footer">
+                        <table>
+                            <tr>
+                                <td class="bold-cell" style="width:55%;">ACKNOWLEDGE OF YOUR SCHED</td>
+                                <td rowspan="6" class="yellow-cell" style="width:45%; vertical-align:middle;">BEE HAPPY! :)</td>
+                            </tr>
+                            <tr><td class="bold-cell red-text">ASK YOUR TL IF THERE'S CORRECTION</td></tr>
+                            <tr><td class="bold-cell">DON'T BE LATE</td></tr>
+                            <tr><td class="bold-cell">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</td></tr>
+                            <tr><td class="bold-cell">PLEASE CALL STORE OR DROP MESSAGE IN OUR GC</td></tr>
+                            <tr><td class="bold-cell">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</td></tr>
+                            <tr>
+                                <td class="bold-cell red-text" colspan="2">PLEASE LONG BREAK IF SLACK</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="bold-cell">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</td>
+                            </tr>
+                        </table>
+                    </div>
                     
                     <div style="display: flex; justify-content: flex-start; align-items: flex-start; margin-top: 15px; gap: 20px; flex-wrap: wrap;">
                         <div class="reminder-box" style="flex: 0 0 auto; min-width: 250px; max-width: 400px; margin: 0; text-align: left; border: 3px solid #FFC700; background: #fff9e6;">
                             <p style="font-weight: bold; margin: 0 0 8px 0; text-align: left; color: #DC0000;">ASK YOUR TL IF THERE'S CORRECTION</p>
                             <p style="margin: 3px 0; text-align: left;">DON'T BE LATE</p>
                             <p style="margin: 3px 0; text-align: left;">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</p>
-                            <p style="margin: 3px 0; text-align: left;">PLEASE CALL STORE OR SEND MESSAGE IN OUR</p>
+                            <p style="margin: 3px 0; text-align: left;">PLEASE CALL STORE OR SEND MESSAGE IN OUR GC</p>
                             <p style="margin: 3px 0; text-align: left;">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</p>
                             <p style="margin: 3px 0; text-align: left;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</p>
-                            <hr style="margin: 8px 0; border: 1px solid #FFC700;">
-                            <p style="margin: 3px 0; text-align: left; font-weight: bold; color: #DC0000;">INDICATORS:</p>
-                            <p style="margin: 3px 0; text-align: left;">⚠️ = Double Booked (assigned to multiple stations)</p>
                         </div>
                         
                         <div class="save-button-container" style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: auto;">

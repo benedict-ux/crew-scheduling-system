@@ -144,10 +144,10 @@ window.viewScheduleModal = async function(scheduleId) {
         const startDate = scheduleData.startDate;
         const scheduleByDay = scheduleData.scheduleData;
         
-        // Station order
+        // Station order (matches schedule.js)
         const stationOrder = [
-            "SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", 
-            "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN"
+            "SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING",
+            "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"
         ];
         
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -221,78 +221,111 @@ window.viewScheduleModal = async function(scheduleId) {
             const currentDate = new Date(baseDate);
             currentDate.setDate(baseDate.getDate() + dayIndex);
             const formattedDate = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            
+
+            // Build print header label e.g. "DATE: MARCH 2, 2026 (MONDAY)"
+            const monthNames = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+            const printDateLabel = `DATE: ${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()} (${day.toUpperCase()})`;
+
+            // Group shifts by station
+            const shiftsByStation = {};
+            daySchedule.forEach(shift => {
+                if (!shiftsByStation[shift.station]) shiftsByStation[shift.station] = [];
+                shiftsByStation[shift.station].push(shift);
+            });
+
+            // Sort within each station: OPENING → MID → CLOSING → by startTime
+            Object.keys(shiftsByStation).forEach(station => {
+                shiftsByStation[station].sort((a, b) => {
+                    const order = { OPENING: 0, MID: 1, CLOSING: 2 };
+                    const ta = order[(a.type||'').toUpperCase()] ?? 3;
+                    const tb = order[(b.type||'').toUpperCase()] ?? 3;
+                    if (ta !== tb) return ta - tb;
+                    return (a.startTime||'').localeCompare(b.startTime||'');
+                });
+            });
+
+            // Add placeholder MID stations if missing
+            if (!shiftsByStation["MID"]) shiftsByStation["MID"] = [{ station:"MID", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM" }];
+            if (!shiftsByStation["MID-DINING"]) shiftsByStation["MID-DINING"] = [{ station:"MID-DINING", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM" }];
+            if (!shiftsByStation["MID-KITCHEN"]) shiftsByStation["MID-KITCHEN"] = [{ station:"MID-KITCHEN", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM" }];
+
+            // Build table rows
+            const hideWhenUnassigned = ["PC", "MID", "MID-DINING", "MID-KITCHEN"];
+            let tableRows = '';
+            stationOrder.forEach(stationName => {
+                const shifts = shiftsByStation[stationName] || [];
+                if (shifts.length === 0) return;
+
+                shifts.forEach((shift, idx) => {
+                    const isUnassigned = shift.crewName === "Unassigned";
+                    const hideClass = hideWhenUnassigned.includes(stationName) && isUnassigned ? 'hide-if-unassigned' : '';
+
+                    const stationCell = idx === 0
+                        ? `<td rowspan="${shifts.length * 2}" class="hist-station-cell" style="text-align:left;background:#f8f9fa;">${stationName}</td>`
+                        : '';
+
+                    tableRows += `
+                        <tr class="${hideClass}">
+                            ${stationCell}
+                            <td class="hist-name-cell">${shift.crewName}</td>
+                            <td style="white-space:nowrap;">${shift.startTime}-${shift.endTime}</td>
+                            <td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                        <tr class="hist-blank-row ${hideClass}">
+                            <td colspan="7" style="padding:4px;border:1px solid #eee;"><input type="text" style="width:100%;border:none;background:transparent;font-size:12px;padding:2px;font-family:inherit;"></td>
+                        </tr>`;
+                });
+            });
+
             modalHtml += `
-                <div class="day-schedule" style="margin-bottom: 30px; page-break-after: always; background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #DC0000;">
-                    <h3 style="background: linear-gradient(135deg, #DC0000 0%, #B00000 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 20px; text-align: center;">
+                <div class="day-schedule" style="margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #DC0000;">
+                    <!-- Screen header -->
+                    <h3 class="screen-day-header" style="background: linear-gradient(135deg, #DC0000 0%, #B00000 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 20px; text-align: center;">
                         ${day} - ${formattedDate}
                     </h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+
+                    <!-- Print-only header -->
+                    <div class="hist-print-header">
+                        <div class="hist-print-header-date">${printDateLabel}</div>
+                        <div class="hist-print-header-branch">JOLLIBEE EDSA KAMIAS</div>
+                    </div>
+
+                    <div class="hist-table-wrap" style="overflow-x:auto;">
+                    <table class="hist-sched-table" style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;">
                         <thead>
-                            <tr style="background: #f8f9fa;">
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">STATION</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">NAME</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">TIME</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">15</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">30</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">60</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: center;">15</th>
-                                <th style="border: 1px solid #000; padding: 8px; text-align: left;">SIGNATURE</th>
+                            <tr>
+                                <th style="border:1px solid #000;padding:8px;text-align:left;">STATION</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:left;">NAME</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:center;">TIME</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:center;">15</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:center;">30</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:center;">60</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:center;">15</th>
+                                <th style="border:1px solid #000;padding:8px;text-align:left;">SIGNATURE</th>
                             </tr>
                         </thead>
-                        <tbody>
-            `;
-            
-            // Sort shifts by station order and type
-            const sortedShifts = [...daySchedule].sort((a, b) => {
-                const stationA = stationOrder.indexOf(a.station);
-                const stationB = stationOrder.indexOf(b.station);
-                if (stationA !== stationB) return stationA - stationB;
-                
-                const typeOrder = { "OPENING": 0, "CLOSING": 1 };
-                return (typeOrder[a.type] || 2) - (typeOrder[b.type] || 2);
-            });
-            
-            // Group by station
-            let currentStation = "";
-            let stationRowCount = 0;
-            
-            sortedShifts.forEach((shift, index) => {
-                const isNewStation = shift.station !== currentStation;
-                if (isNewStation) {
-                    currentStation = shift.station;
-                    stationRowCount = sortedShifts.filter(s => s.station === currentStation).length;
-                }
-                
-                modalHtml += `<tr>`;
-                
-                if (isNewStation) {
-                    modalHtml += `<td rowspan="${stationRowCount}" style="border: 1px solid #000; padding: 8px; font-weight: bold; vertical-align: top;">${shift.station}</td>`;
-                }
-                
-                modalHtml += `
-                    <td style="border: 1px solid #000; padding: 8px;">${shift.crewName}</td>
-                    <td style="border: 1px solid #000; padding: 8px; text-align: center; font-size: 11px;">${shift.startTime}-${shift.endTime}</td>
-                    <td style="border: 1px solid #000; padding: 8px;"></td>
-                    <td style="border: 1px solid #000; padding: 8px;"></td>
-                    <td style="border: 1px solid #000; padding: 8px;"></td>
-                    <td style="border: 1px solid #000; padding: 8px;"></td>
-                    <td style="border: 1px solid #000; padding: 8px;"></td>
-                </tr>`;
-            });
-            
-            modalHtml += `
-                        </tbody>
+                        <tbody>${tableRows}</tbody>
                     </table>
-                    
-                    <div class="reminder-box" style="margin-top: 10px; padding: 8px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 5px;">
-                        <p style="margin: 3px 0; font-weight: bold; font-size: 10px;">ASK YOUR TL IF THERE'S CORRECTION</p>
-                        <p style="margin: 3px 0; font-size: 10px;">DON'T BE LATE</p>
-                        <p style="margin: 3px 0; font-size: 10px;">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</p>
-                        <p style="margin: 3px 0; font-size: 10px;">PLEASE CALL STORE OR SEND MESSAGE IN OUR</p>
-                        <p style="margin: 3px 0; font-size: 10px;">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</p>
-                        <p style="margin: 3px 0; font-size: 10px;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</p>
                     </div>
+
+                    <!-- Print-only footer -->
+                    <div class="hist-print-footer">
+                        <table>
+                            <tr>
+                                <td class="bold-cell" style="width:55%;">ACKNOWLEDGE OF YOUR SCHED</td>
+                                <td rowspan="6" class="yellow-cell" style="width:45%;vertical-align:middle;">BEE HAPPY! :)</td>
+                            </tr>
+                            <tr><td class="bold-cell red-text">ASK YOUR TL IF THERE'S CORRECTION</td></tr>
+                            <tr><td class="bold-cell">DON'T BE LATE</td></tr>
+                            <tr><td class="bold-cell">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</td></tr>
+                            <tr><td class="bold-cell">PLEASE CALL STORE OR DROP MESSAGE IN OUR GC</td></tr>
+                            <tr><td class="bold-cell">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</td></tr>
+                            <tr><td class="bold-cell red-text" colspan="2">PLEASE LONG BREAK IF SLACK</td></tr>
+                            <tr><td colspan="2" class="bold-cell">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</td></tr>
+                        </table>
+                    </div>
+
+
                 </div>
             `;
         });

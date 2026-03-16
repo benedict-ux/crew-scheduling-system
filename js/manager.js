@@ -2230,6 +2230,30 @@ window.loadRequests = async function() {
     try {
         const q = query(collection(db, "unavailabilityRequests"), where("status", "==", "pending"));
         const snap = await getDocs(q);
+        
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Auto-delete past approved requests
+        const deletePromises = [];
+        snap.forEach(docSnap => {
+            const req = docSnap.data();
+            if (req.status === "approved") {
+                const [yr, mo, dy] = req.date.split("-").map(Number);
+                const requestDate = new Date(yr, mo - 1, dy);
+                if (requestDate < today) {
+                    console.log(`Manager: Deleting past approved request: ${req.date}`);
+                    deletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
+                }
+            }
+        });
+        
+        if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+            console.log(`Manager: Deleted ${deletePromises.length} past approved request(s)`);
+        }
+        
         if (snap.empty) { 
             container.innerHTML = "<p style='color: #999; text-align: center; padding: 20px;'>No pending requests.</p>"; 
             return; 

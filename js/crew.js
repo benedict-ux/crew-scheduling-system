@@ -427,6 +427,7 @@ window.requestOff = async function() {
         // This will now work because addDoc is imported
         await addDoc(collection(db, "unavailabilityRequests"), {
             crewName: currentCrewName,
+            userId: auth.currentUser.uid,
             date: dateInput,
             reason: reasonInput,
             status: "pending", 
@@ -451,14 +452,43 @@ async function loadMyRequestHistory() {
     const historyDiv = document.getElementById("requestHistory");
     if (!historyDiv) return;
 
+    // Guard: if crew name not loaded yet, show friendly message
+    if (!currentCrewName) {
+        historyDiv.innerHTML = "<p style='color: gray;'>Loading your profile...</p>";
+        return;
+    }
+
     try {
-        const q = query(
-            collection(db, "unavailabilityRequests"), 
-            where("crewName", "==", currentCrewName)
-        );
-        
-        const snap = await getDocs(q);
-        if (snap.empty) {
+        const uid = auth.currentUser?.uid;
+
+        // Query by crewName (works for all existing requests)
+        // Also try userId for newer requests, but don't fail if it errors
+        let allDocs = [];
+        const seen = new Set();
+
+        try {
+            const snapByName = await getDocs(query(
+                collection(db, "unavailabilityRequests"),
+                where("crewName", "==", currentCrewName)
+            ));
+            snapByName.docs.forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); allDocs.push(d); } });
+        } catch (e) {
+            console.warn("crewName query failed:", e.message);
+        }
+
+        if (uid) {
+            try {
+                const snapByUid = await getDocs(query(
+                    collection(db, "unavailabilityRequests"),
+                    where("userId", "==", uid)
+                ));
+                snapByUid.docs.forEach(d => { if (!seen.has(d.id)) { seen.add(d.id); allDocs.push(d); } });
+            } catch (e) {
+                console.warn("userId query failed (no index yet):", e.message);
+            }
+        }
+
+        if (allDocs.length === 0) {
             historyDiv.innerHTML = "<p style='color: gray;'>No requests submitted yet.</p>";
             return;
         }
@@ -471,14 +501,14 @@ async function loadMyRequestHistory() {
         const requests = [];
         const deletePromises = [];
         
-        snap.forEach(docSnap => {
+        allDocs.forEach(docSnap => {
             const req = docSnap.data();
             
-            // Parse the request date (format: YYYY-MM-DD)
-            const requestDate = new Date(req.date);
-            requestDate.setHours(0, 0, 0, 0);
+            // Parse the request date (format: YYYY-MM-DD) - force local time
+            const [yr, mo, dy] = req.date.split("-").map(Number);
+            const requestDate = new Date(yr, mo - 1, dy);
             
-            // Delete approved requests that are in the past
+            // Auto-delete past approved requests
             if (req.status === "approved" && requestDate < today) {
                 console.log(`Deleting past approved request: ${req.date}`);
                 deletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
@@ -491,6 +521,12 @@ async function loadMyRequestHistory() {
                 date: requestDate
             });
         });
+        
+        // Execute all deletions
+        if (deletePromises.length > 0) {
+            await Promise.all(deletePromises);
+            console.log(`Deleted ${deletePromises.length} past approved request(s)`);
+        }
         
         // Sort by date descending (most recent first)
         requests.sort((a, b) => b.date - a.date);
@@ -543,12 +579,6 @@ async function loadMyRequestHistory() {
             `;
         });
         html += "</div>";
-        
-        // Execute all deletions
-        if (deletePromises.length > 0) {
-            await Promise.all(deletePromises);
-            console.log(`Deleted ${deletePromises.length} past approved request(s)`);
-        }
         
         if (requests.length === 0) {
             historyDiv.innerHTML = "<p style='color: gray;'>No requests to display.</p>";

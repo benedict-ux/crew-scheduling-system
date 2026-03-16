@@ -403,13 +403,80 @@ async function loadGlobalSchedule() {
 // ===============================
 // 4. UNAVAILABILITY REQUESTS
 // ===============================
-// UPDATED FUNCTION
+// Helper: Generate array of dates between start and end (inclusive)
+function getDateRange(startStr, endStr) {
+    const dates = [];
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+            .toISOString()
+            .split("T")[0];
+        dates.push(dateStr);
+    }
+    return dates;
+}
+
+// Helper: Format date range for display
+function formatDateRange(startStr, endStr) {
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    if (startStr === endStr) {
+        return `${monthNames[start.getMonth()]} ${start.getDate()}, ${start.getFullYear()}`;
+    }
+    
+    if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+        return `${monthNames[start.getMonth()]} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
+    }
+    
+    return `${monthNames[start.getMonth()]} ${start.getDate()}, ${start.getFullYear()} - ${monthNames[end.getMonth()]} ${end.getDate()}, ${end.getFullYear()}`;
+}
+
+// Update date range display when dates change
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('offStartDate');
+    const endDateInput = document.getElementById('offEndDate');
+    const dateRangeInfo = document.getElementById('dateRangeInfo');
+    const dateRangeText = document.getElementById('dateRangeText');
+    
+    function updateDateRangeDisplay() {
+        const start = startDateInput?.value;
+        const end = endDateInput?.value;
+        
+        if (start && end) {
+            if (new Date(start) > new Date(end)) {
+                dateRangeInfo.style.display = 'none';
+            } else {
+                dateRangeText.textContent = formatDateRange(start, end);
+                const dayCount = getDateRange(start, end).length;
+                dateRangeText.textContent += ` (${dayCount} day${dayCount > 1 ? 's' : ''})`;
+                dateRangeInfo.style.display = 'block';
+            }
+        } else {
+            dateRangeInfo.style.display = 'none';
+        }
+    }
+    
+    startDateInput?.addEventListener('change', updateDateRangeDisplay);
+    endDateInput?.addEventListener('change', updateDateRangeDisplay);
+});
+
+// UPDATED FUNCTION - Now handles date ranges
 window.requestOff = async function() {
-    const dateInput = document.getElementById("offDate").value;
+    const startDateInput = document.getElementById("offStartDate").value;
+    const endDateInput = document.getElementById("offEndDate").value;
     const reasonInput = document.getElementById("offReason").value.trim();
     
-    if (!dateInput) {
-        alert("Please select a date.");
+    if (!startDateInput || !endDateInput) {
+        alert("Please select both start and end dates.");
+        return;
+    }
+    
+    if (new Date(startDateInput) > new Date(endDateInput)) {
+        alert("End date must be after or equal to start date.");
         return;
     }
     
@@ -424,22 +491,33 @@ window.requestOff = async function() {
     }
 
     try {
-        // This will now work because addDoc is imported
-        await addDoc(collection(db, "unavailabilityRequests"), {
-            crewName: currentCrewName,
-            userId: auth.currentUser.uid,
-            date: dateInput,
-            reason: reasonInput,
-            status: "pending", 
-            requestedAt: serverTimestamp() 
-        });
+        // Generate all dates in the range
+        const dateRange = getDateRange(startDateInput, endDateInput);
         
-        alert("Request sent successfully!");
+        // Create a request for each day
+        const promises = dateRange.map(date => 
+            addDoc(collection(db, "unavailabilityRequests"), {
+                crewName: currentCrewName,
+                userId: auth.currentUser.uid,
+                date: date,
+                reason: reasonInput,
+                status: "pending",
+                requestedAt: serverTimestamp(),
+                dateRangeStart: startDateInput,
+                dateRangeEnd: endDateInput
+            })
+        );
+        
+        await Promise.all(promises);
+        
+        alert(`Request sent successfully for ${dateRange.length} day${dateRange.length > 1 ? 's' : ''}!`);
         
         // Clear the form
-        document.getElementById("offDate").value = "";
+        document.getElementById("offStartDate").value = "";
+        document.getElementById("offEndDate").value = "";
         document.getElementById("offReason").value = "";
         document.getElementById("reasonCharCount").textContent = "0";
+        document.getElementById("dateRangeInfo").style.display = "none";
         
         loadMyRequestHistory(); 
     } catch (e) {
@@ -533,10 +611,27 @@ async function loadMyRequestHistory() {
 
         let html = "<div style='display: grid; gap: 12px;'>";
         
-        requests.forEach(({ data: req }) => {
-            const statusColor = req.status === "approved" ? "#10b981" : (req.status === "rejected" ? "#ef4444" : "#f59e0b");
-            const statusIcon = req.status === "approved" ? "✓" : (req.status === "rejected" ? "✗" : "⏳");
-            const reason = req.reason || "No reason provided";
+        // Group requests by date range
+        const groupedRequests = {};
+        requests.forEach(({ data: req, id }) => {
+            const rangeKey = `${req.dateRangeStart || req.date}|${req.dateRangeEnd || req.date}`;
+            if (!groupedRequests[rangeKey]) {
+                groupedRequests[rangeKey] = [];
+            }
+            groupedRequests[rangeKey].push({ data: req, id });
+        });
+        
+        // Display grouped requests
+        Object.entries(groupedRequests).forEach(([rangeKey, items]) => {
+            const [startDate, endDate] = rangeKey.split('|');
+            const statusColor = items[0].data.status === "approved" ? "#10b981" : (items[0].data.status === "rejected" ? "#ef4444" : "#f59e0b");
+            const statusIcon = items[0].data.status === "approved" ? "✓" : (items[0].data.status === "rejected" ? "✗" : "⏳");
+            const reason = items[0].data.reason || "No reason provided";
+            const dayCount = items.length;
+            
+            const dateDisplay = startDate === endDate 
+                ? startDate 
+                : `${startDate} to ${endDate}`;
             
             html += `
                 <div style="
@@ -548,7 +643,8 @@ async function loadMyRequestHistory() {
                 ">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <span style="font-weight: 600; color: #333;">
-                            📅 ${req.date}
+                            📅 ${dateDisplay}
+                            ${dayCount > 1 ? `<span style="color: #666; font-size: 13px; margin-left: 8px;">(${dayCount} days)</span>` : ''}
                         </span>
                         <span style="
                             color: ${statusColor}; 
@@ -559,7 +655,7 @@ async function loadMyRequestHistory() {
                             background: ${statusColor}15;
                             border-radius: 6px;
                         ">
-                            ${statusIcon} ${req.status}
+                            ${statusIcon} ${items[0].data.status}
                         </span>
                     </div>
                     <div style="

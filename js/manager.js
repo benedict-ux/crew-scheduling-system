@@ -2275,9 +2275,27 @@ window.loadRequests = async function() {
             return dateB - dateA;
         });
         
-        let html = "";
+        // Group requests by crew and date range
+        const groupedByCrewAndRange = {};
         requests.forEach(({ id, data: req }) => {
+            const rangeKey = `${req.crewName}|${req.dateRangeStart || req.date}|${req.dateRangeEnd || req.date}`;
+            if (!groupedByCrewAndRange[rangeKey]) {
+                groupedByCrewAndRange[rangeKey] = [];
+            }
+            groupedByCrewAndRange[rangeKey].push({ id, data: req });
+        });
+        
+        let html = "";
+        Object.entries(groupedByCrewAndRange).forEach(([rangeKey, items]) => {
+            const [crewName, startDate, endDate] = rangeKey.split('|');
+            const req = items[0].data;
             const reason = req.reason || "No reason provided";
+            const dayCount = items.length;
+            
+            const dateDisplay = startDate === endDate 
+                ? startDate 
+                : `${startDate} to ${endDate}`;
+            
             html += `
                 <div style="
                     padding: 20px; 
@@ -2291,10 +2309,11 @@ window.loadRequests = async function() {
                     <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
                         <div style="flex: 1;">
                             <h3 style="margin: 0 0 8px 0; color: #DC0000; font-size: 18px;">
-                                ${req.crewName}
+                                ${crewName}
                             </h3>
                             <p style="margin: 0; color: #666; font-size: 14px;">
-                                📅 <strong>Date:</strong> ${req.date}
+                                📅 <strong>Date:</strong> ${dateDisplay}
+                                ${dayCount > 1 ? `<span style="color: #999; margin-left: 8px;">(${dayCount} days)</span>` : ''}
                             </p>
                         </div>
                     </div>
@@ -2313,7 +2332,7 @@ window.loadRequests = async function() {
                         </p>
                     </div>
                     <div style="display: flex; gap: 10px;">
-                        <button onclick="approveRequest('${id}', '${req.crewName}', '${req.date}')" 
+                        <button onclick="approveRequest('${items.map(i => i.id).join(',')}', '${crewName}', '${startDate}', '${endDate}')" 
                             style="
                                 flex: 1;
                                 background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
@@ -2330,7 +2349,7 @@ window.loadRequests = async function() {
                             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                             ✓ Approve
                         </button>
-                        <button onclick="declineRequest('${id}')" 
+                        <button onclick="declineRequest('${items.map(i => i.id).join(',')}')" 
                             style="
                                 flex: 1;
                                 background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
@@ -2358,8 +2377,9 @@ window.loadRequests = async function() {
     }
 };
 
-window.approveRequest = async function(reqId, crewName, date) {
-    const confirmApprove = confirm(`Approve time off request for ${crewName} on ${date}?`);
+window.approveRequest = async function(reqIds, crewName, startDate, endDate) {
+    const dateDisplay = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
+    const confirmApprove = confirm(`Approve time off request for ${crewName} on ${dateDisplay}?`);
     if (!confirmApprove) return;
     
     try {
@@ -2368,17 +2388,39 @@ window.approveRequest = async function(reqId, crewName, date) {
         
         if (!crewSnap.empty) {
             const profileId = crewSnap.docs[0].id;
-            const cleanDate = date.trim();
+            
+            // Generate all dates in the range
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const datesToAdd = [];
+            
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .split("T")[0];
+                datesToAdd.push(dateStr);
+            }
+            
+            // Add all dates to crew profile
+            const updatePromises = datesToAdd.map(date =>
+                updateDoc(doc(db, "crewProfiles", profileId), { 
+                    unavailableDates: arrayUnion(date) 
+                })
+            );
+            
+            await Promise.all(updatePromises);
+            
+            // Update all request documents to approved
+            const idArray = reqIds.split(',');
+            const approvePromises = idArray.map(id =>
+                updateDoc(doc(db, "unavailabilityRequests", id.trim()), { 
+                    status: "approved" 
+                })
+            );
+            
+            await Promise.all(approvePromises);
 
-            await updateDoc(doc(db, "crewProfiles", profileId), { 
-                unavailableDates: arrayUnion(cleanDate) 
-            });
-
-            await updateDoc(doc(db, "unavailabilityRequests", reqId), { 
-                status: "approved" 
-            });
-
-            alert("✓ Approved! The date is now blocked for this crew member.");
+            alert(`✓ Approved! ${datesToAdd.length} day${datesToAdd.length > 1 ? 's' : ''} blocked for this crew member.`);
             loadRequests(); 
             loadCrew();     
         }
@@ -2387,14 +2429,19 @@ window.approveRequest = async function(reqId, crewName, date) {
     }
 };
 
-window.declineRequest = async function(reqId) {
+window.declineRequest = async function(reqIds) {
     const confirmDecline = confirm("Are you sure you want to decline this request?");
     if (!confirmDecline) return;
     
     try {
-        await updateDoc(doc(db, "unavailabilityRequests", reqId), { 
-            status: "rejected" 
-        });
+        const idArray = reqIds.split(',');
+        const declinePromises = idArray.map(id =>
+            updateDoc(doc(db, "unavailabilityRequests", id.trim()), { 
+                status: "rejected" 
+            })
+        );
+        
+        await Promise.all(declinePromises);
 
         alert("✗ Request declined.");
         loadRequests();

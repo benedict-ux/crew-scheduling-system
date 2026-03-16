@@ -14,6 +14,7 @@ import {
 let fullScheduleData = {};
 let scheduleStartDate = null;
 let allCrewData = []; // Store crew data globally for dropdown updates
+let approvedDates = {}; // Store approved unavailability dates globally
 
 // Helper: Converts "8:00PM" to minutes for comparison
 function timeToMinutes(timeStr) {
@@ -74,6 +75,22 @@ window.loadSchedule = async function () {
         const crewSnapshot = await getDocs(collection(db, "crewProfiles"));
         const crewData = crewSnapshot.docs.map(doc => doc.data());
         allCrewData = crewData; // Store globally for dropdown updates
+
+        // 🔥 Load approved unavailability requests for this week
+        const approvedRequestsSnapshot = await getDocs(query(
+            collection(db, "unavailabilityRequests"),
+            where("status", "==", "approved")
+        ));
+        approvedDates = {};
+        approvedRequestsSnapshot.forEach(doc => {
+            const req = doc.data();
+            if (!approvedDates[req.date]) {
+                approvedDates[req.date] = [];
+            }
+            approvedDates[req.date].push(req.crewName);
+            console.log(`Approved: ${req.crewName} on ${req.date}`);
+        });
+        console.log("Approved dates:", approvedDates);
 
         container.innerHTML = "";
 
@@ -232,6 +249,26 @@ window.loadSchedule = async function () {
                                         });
                                     } else {
                                         dropdownCrew = crewData;
+                                    }
+                                    
+                                    // Filter out crew with approved unavailability requests for this date
+                                    const unavailableCrewNames = approvedDates[formattedDate] || [];
+                                    if (formattedDate === "2026-03-16" || unavailableCrewNames.length > 0) {
+                                        console.log(`📅 Date: ${formattedDate}, Unavailable: ${unavailableCrewNames.join(", ")}`);
+                                    }
+                                    const crewBeforeFilter = dropdownCrew.length;
+                                    dropdownCrew = dropdownCrew.filter(crew => {
+                                        const crewDisplayName = crew.nickname || crew.name;
+                                        const crewFullName = crew.name;
+                                        // Check both display name and full name
+                                        const isUnavailable = unavailableCrewNames.includes(crewDisplayName) || unavailableCrewNames.includes(crewFullName);
+                                        if (isUnavailable) {
+                                            console.log(`✅ Filtering out: ${crewDisplayName} (full: ${crewFullName}) on ${formattedDate}`);
+                                        }
+                                        return !isUnavailable;
+                                    });
+                                    if (crewBeforeFilter !== dropdownCrew.length) {
+                                        console.log(`✅ Filtered ${crewBeforeFilter - dropdownCrew.length} crew member(s) for ${formattedDate}`);
                                     }
                                     
                                     const shiftId = shift.originalIndex === -1 ? 
@@ -493,6 +530,21 @@ window.updateDropdownsForDay = function(day) {
                 if (hasPCStation) {
                     const crewDisplayName = crew.nickname || crew.name;
                     
+                    // Check if crew has approved unavailability for this date
+                    const dayIndex = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].indexOf(day);
+                    const baseDateParts = scheduleStartDate.split("-");
+                    const baseDate = new Date(baseDateParts[0], baseDateParts[1] - 1, baseDateParts[2]);
+                    const currentDayObj = new Date(baseDate);
+                    currentDayObj.setDate(baseDate.getDate() + dayIndex);
+                    const formattedDate = new Date(
+                        currentDayObj.getTime() - currentDayObj.getTimezoneOffset() * 60000
+                    ).toISOString().split("T")[0];
+                    
+                    // Check both display name and full name against approved dates
+                    const unavailableNames = approvedDates[formattedDate] || [];
+                    const isUnavailable = unavailableNames.includes(crewDisplayName) || unavailableNames.includes(crew.name);
+                    if (isUnavailable) return; // Skip this crew
+                    
                     // Check if crew is already assigned elsewhere
                     const isDoubleBooked = crewAssignments[crewDisplayName] && crewAssignments[crewDisplayName].length > 1;
                     const label = isDoubleBooked ? `${crewDisplayName} ⚠️` : crewDisplayName;
@@ -500,9 +552,23 @@ window.updateDropdownsForDay = function(day) {
                 }
             });
         } else {
-            // Add ALL crew members to other station dropdowns
+            // Add crew members to other station dropdowns (excluding unavailable)
+            const dayIndex = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].indexOf(day);
+            const baseDateParts = scheduleStartDate.split("-");
+            const baseDate = new Date(baseDateParts[0], baseDateParts[1] - 1, baseDateParts[2]);
+            const currentDayObj = new Date(baseDate);
+            currentDayObj.setDate(baseDate.getDate() + dayIndex);
+            const formattedDate = new Date(
+                currentDayObj.getTime() - currentDayObj.getTimezoneOffset() * 60000
+            ).toISOString().split("T")[0];
+            
             allCrewData.forEach(crew => {
                 const crewDisplayName = crew.nickname || crew.name;
+                
+                // Check if crew has approved unavailability for this date
+                const unavailableNames = approvedDates[formattedDate] || [];
+                const isUnavailable = unavailableNames.includes(crewDisplayName) || unavailableNames.includes(crew.name);
+                if (isUnavailable) return; // Skip this crew
                 
                 // Check if crew is already assigned elsewhere
                 const isDoubleBooked = crewAssignments[crewDisplayName] && crewAssignments[crewDisplayName].length > 1;

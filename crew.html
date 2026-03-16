@@ -47,13 +47,22 @@
     <div id="requestSection" style="display:none;">
         <div class="card">
             <h2>📝 Request Time Off</h2>
-            <p>Select a date you are unavailable to work and provide a reason.</p>
+            <p>Select a date range you are unavailable to work and provide a reason.</p>
             
             <div style="margin-top: 20px;">
-                <label for="offDate" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
-                    Select Date:
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                    Start Date:
                 </label>
-                <input type="date" id="offDate" style="width: 100%; margin-bottom: 15px;">
+                <input type="date" id="offStartDate" style="width: 100%; margin-bottom: 15px;">
+                
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
+                    End Date:
+                </label>
+                <input type="date" id="offEndDate" style="width: 100%; margin-bottom: 15px;">
+                
+                <div id="dateRangeInfo" style="background: #f0f0f0; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; color: #666; display: none;">
+                    <strong>Selected:</strong> <span id="dateRangeText"></span>
+                </div>
                 
                 <label for="offReason" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">
                     Reason:

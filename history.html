@@ -11,6 +11,219 @@
         /* Hide print-only elements on screen */
         .hist-print-header, .hist-print-footer { display: none; }
 
+        /* Modal responsive styles */
+        #scheduleModal {
+            padding: 10px !important;
+        }
+
+        #scheduleModal > div {
+            width: 95% !important;
+            max-width: 1200px !important;
+            max-height: 90vh !important;
+            padding: 20px !important;
+            border-radius: 15px !important;
+        }
+
+        .day-schedule {
+            margin-bottom: 20px !important;
+            padding: 15px !important;
+            background: #f8f9fa !important;
+            border-radius: 10px !important;
+        }
+
+        .day-schedule table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 12px !important;
+            table-layout: fixed !important;
+        }
+
+        .day-schedule table th,
+        .day-schedule table td {
+            border: 1px solid #000 !important;
+            padding: 8px 4px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+
+        .day-schedule table th {
+            background: linear-gradient(135deg, #DC0000 0%, #B00000 100%) !important;
+            color: white !important;
+            font-weight: 700 !important;
+            font-size: 11px !important;
+        }
+
+        .hist-station-cell {
+            font-weight: 700 !important;
+            color: #DC0000 !important;
+            background: #f8f9fa !important;
+        }
+
+        .hist-name-cell {
+            font-weight: 600 !important;
+        }
+
+        /* Desktop - all columns visible */
+        @media screen and (min-width: 1024px) {
+            .day-schedule table th:nth-child(1),
+            .day-schedule table td:nth-child(1) { width: 13% !important; }
+            .day-schedule table th:nth-child(2),
+            .day-schedule table td:nth-child(2) { width: 16% !important; }
+            .day-schedule table th:nth-child(3),
+            .day-schedule table td:nth-child(3) { width: 16% !important; }
+            .day-schedule table th:nth-child(4),
+            .day-schedule table td:nth-child(4) { width: 6% !important; }
+            .day-schedule table th:nth-child(5),
+            .day-schedule table td:nth-child(5) { width: 6% !important; }
+            .day-schedule table th:nth-child(6),
+            .day-schedule table td:nth-child(6) { width: 6% !important; }
+            .day-schedule table th:nth-child(7),
+            .day-schedule table td:nth-child(7) { width: 6% !important; }
+            .day-schedule table th:nth-child(8),
+            .day-schedule table td:nth-child(8) { width: 31% !important; }
+
+            .day-schedule table { font-size: 13px !important; }
+            .day-schedule table th { font-size: 12px !important; }
+        }
+
+        /* Tablet - all columns visible but smaller */
+        @media screen and (min-width: 768px) and (max-width: 1023px) {
+            .day-schedule table th:nth-child(1),
+            .day-schedule table td:nth-child(1) { width: 14% !important; }
+            .day-schedule table th:nth-child(2),
+            .day-schedule table td:nth-child(2) { width: 16% !important; }
+            .day-schedule table th:nth-child(3),
+            .day-schedule table td:nth-child(3) { width: 16% !important; }
+            .day-schedule table th:nth-child(4),
+            .day-schedule table td:nth-child(4) { width: 6% !important; }
+            .day-schedule table th:nth-child(5),
+            .day-schedule table td:nth-child(5) { width: 6% !important; }
+            .day-schedule table th:nth-child(6),
+            .day-schedule table td:nth-child(6) { width: 6% !important; }
+            .day-schedule table th:nth-child(7),
+            .day-schedule table td:nth-child(7) { width: 6% !important; }
+            .day-schedule table th:nth-child(8),
+            .day-schedule table td:nth-child(8) { width: 30% !important; }
+
+            .day-schedule table { font-size: 11px !important; }
+            .day-schedule table th { font-size: 10px !important; }
+            
+            #scheduleModal > div {
+                padding: 15px !important;
+            }
+        }
+
+        /* Mobile - all columns visible with horizontal scroll */
+        @media screen and (max-width: 767px) {
+            #scheduleModal {
+                padding: 5px !important;
+            }
+
+            #scheduleModal > div {
+                width: 98% !important;
+                max-width: 100% !important;
+                padding: 10px !important;
+                max-height: 85vh !important;
+            }
+
+            .day-schedule {
+                margin-bottom: 15px !important;
+                padding: 10px !important;
+            }
+
+            .day-schedule > h3 {
+                font-size: 16px !important;
+                margin-bottom: 10px !important;
+            }
+
+            .day-schedule table {
+                font-size: 10px !important;
+                min-width: 600px !important;
+            }
+
+            .day-schedule table th,
+            .day-schedule table td {
+                padding: 6px 3px !important;
+                font-size: 10px !important;
+            }
+
+            .day-schedule table th {
+                font-size: 9px !important;
+            }
+
+            .day-schedule table th:nth-child(1),
+            .day-schedule table td:nth-child(1) { width: 14% !important; }
+            .day-schedule table th:nth-child(2),
+            .day-schedule table td:nth-child(2) { width: 16% !important; }
+            .day-schedule table th:nth-child(3),
+            .day-schedule table td:nth-child(3) { width: 16% !important; }
+            .day-schedule table th:nth-child(4),
+            .day-schedule table td:nth-child(4) { width: 6% !important; }
+            .day-schedule table th:nth-child(5),
+            .day-schedule table td:nth-child(5) { width: 6% !important; }
+            .day-schedule table th:nth-child(6),
+            .day-schedule table td:nth-child(6) { width: 6% !important; }
+            .day-schedule table th:nth-child(7),
+            .day-schedule table td:nth-child(7) { width: 6% !important; }
+            .day-schedule table th:nth-child(8),
+            .day-schedule table td:nth-child(8) { width: 30% !important; }
+
+            .hist-table-wrap {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            #scheduleModal > div {
+                padding: 8px !important;
+            }
+
+            .day-schedule {
+                padding: 8px !important;
+            }
+
+            .day-schedule table {
+                font-size: 9px !important;
+                min-width: 550px !important;
+            }
+
+            .day-schedule table th,
+            .day-schedule table td {
+                padding: 4px 2px !important;
+                font-size: 9px !important;
+            }
+
+            .day-schedule table th {
+                font-size: 8px !important;
+            }
+        }
+
+        @media screen and (max-width: 375px) {
+            #scheduleModal > div {
+                padding: 5px !important;
+            }
+
+            .day-schedule {
+                padding: 5px !important;
+            }
+
+            .day-schedule table {
+                font-size: 8px !important;
+                min-width: 500px !important;
+            }
+
+            .day-schedule table th,
+            .day-schedule table td {
+                padding: 3px 1px !important;
+                font-size: 8px !important;
+            }
+
+            .day-schedule table th {
+                font-size: 7px !important;
+            }
+        }
+
         @media print {
             @page {
                 size: 8.5in 11in portrait;

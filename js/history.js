@@ -52,11 +52,12 @@ window.loadHistory = async function() {
         archivedSchedules.forEach(({ id: scheduleId, data }) => {
             const startDate = data.startDate;
             
-            // Calculate end date (Sunday)
-            const start = new Date(startDate);
-            const end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            const endDate = end.toISOString().split('T')[0];
+            // Use stored endDate or fallback to startDate + 6
+            const endDate = data.endDate || (() => {
+                const start = new Date(startDate);
+                start.setDate(start.getDate() + 6);
+                return new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+            })();
             
             const published = data.published ? '✅ Published' : '⏳ Draft';
             const archivedDate = data.archivedAt ? new Date(data.archivedAt.seconds * 1000).toLocaleDateString() : 'Unknown';
@@ -142,6 +143,7 @@ window.viewScheduleModal = async function(scheduleId) {
         
         const scheduleData = scheduleDoc.data();
         const startDate = scheduleData.startDate;
+        const scheduleEndDate = scheduleData.endDate;
         const scheduleByDay = scheduleData.scheduleData;
         
         // Station order (matches schedule.js)
@@ -149,8 +151,15 @@ window.viewScheduleModal = async function(scheduleId) {
             "SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING",
             "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"
         ];
-        
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+        // Build actual date range
+        const allDayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const startObj = new Date(startDate);
+        const endObj = scheduleEndDate ? new Date(scheduleEndDate) : new Date(startObj.getTime() + 6 * 24 * 60 * 60 * 1000);
+        const datesInRange = [];
+        for (let d = new Date(startObj); d <= endObj; d.setDate(d.getDate() + 1)) {
+            datesInRange.push(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0]);
+        }
         
         let modalHtml = `
             <div id="scheduleModal" style="
@@ -212,19 +221,16 @@ window.viewScheduleModal = async function(scheduleId) {
         `;
         
         // Generate schedule for each day
-        days.forEach((day, dayIndex) => {
+        datesInRange.forEach(dateStr => {
+            const currentDate = new Date(dateStr);
+            const day = allDayNames[currentDate.getDay()];
             const daySchedule = scheduleByDay[day] || [];
             
-            // Calculate date for this day
-            const baseDateParts = startDate.split("-");
-            const baseDate = new Date(baseDateParts[0], baseDateParts[1]-1, baseDateParts[2]);
-            const currentDate = new Date(baseDate);
-            currentDate.setDate(baseDate.getDate() + dayIndex);
-            const formattedDate = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const formattedDate = currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
             // Build print header label e.g. "DATE: MARCH 2, 2026 (MONDAY)"
             const monthNames = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
-            const printDateLabel = `DATE: ${monthNames[currentDate.getMonth()]} ${currentDate.getDate()}, ${currentDate.getFullYear()} (${day.toUpperCase()})`;
+            const printDateLabel = `DATE: ${monthNames[currentDate.getUTCMonth()]} ${currentDate.getUTCDate()}, ${currentDate.getUTCFullYear()} (${day.toUpperCase()})`;
 
             // Group shifts by station
             const shiftsByStation = {};

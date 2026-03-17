@@ -197,9 +197,13 @@ async function loadMyPersonalSchedule(crewName) {
 
     // Find the first non-archived schedule
     let scheduleData = null;
+    let scheduleStartDate = null;
+    let scheduleEndDate = null;
     for (const doc of snap.docs) {
         if (!doc.data().archived) {
             scheduleData = doc.data().scheduleData;
+            scheduleStartDate = doc.data().startDate;
+            scheduleEndDate = doc.data().endDate;
             break;
         }
     }
@@ -232,12 +236,28 @@ async function loadMyPersonalSchedule(crewName) {
 
     console.log(`Crew name: ${crewName}, First name: ${firstName}, Last name: ${lastName}, Nickname: ${currentCrewNickname}`);
 
-    ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
+    const allDayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    
+    // Build date range from startDate to endDate
+    const startObj = new Date(scheduleStartDate);
+    const endObj = scheduleEndDate ? new Date(scheduleEndDate) : new Date(startObj.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const datesInRange = [];
+    for (let d = new Date(startObj); d <= endObj; d.setDate(d.getDate() + 1)) {
+        const dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+        datesInRange.push(dateStr);
+    }
+
+    datesInRange.forEach(dateStr => {
+        const dayObj = new Date(dateStr);
+        const day = allDayNames[dayObj.getDay()];
+        // Format date for display e.g. "Monday, Mar 2"
+        const displayDate = dayObj.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
+
         // Debug: Log all crew names in this day's schedule
-        console.log(`${day} schedule:`, scheduleData[day].map(s => s.crewName));
+        console.log(`${displayDate} schedule:`, (scheduleData[day] || []).map(s => s.crewName));
         
         // Match by first name, last name, full name, nickname, or contains any of these
-        const myShifts = scheduleData[day].filter(s => {
+        const myShifts = (scheduleData[day] || []).filter(s => {
             const scheduleName = s.crewName || "";
             const scheduleNameLower = scheduleName.toLowerCase();
             
@@ -251,7 +271,7 @@ async function loadMyPersonalSchedule(crewName) {
                            (currentCrewNickname && scheduleNameLower.includes(currentCrewNickname.toLowerCase()));
             
             if (matches) {
-                console.log(`✅ Found match: "${scheduleName}" matches crew on ${day}`);
+                console.log(`✅ Found match: "${scheduleName}" matches crew on ${displayDate}`);
             }
             return matches;
         });
@@ -259,7 +279,7 @@ async function loadMyPersonalSchedule(crewName) {
         if (myShifts.length > 0) {
             found = true;
             html += `<div class="card" style="border-left: 5px solid #2563eb; margin-bottom: 10px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <h3>${day}</h3>
+                        <h3>${displayDate}</h3>
                         ${myShifts.map(s => `<p><strong>${s.station}</strong>: ${s.startTime} - ${s.endTime}</p>`).join("")}
                      </div>`;
         }
@@ -308,19 +328,22 @@ async function loadGlobalSchedule() {
         }
 
         const scheduleData = scheduleDoc.scheduleData;
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        
+        const scheduleEndDate = scheduleDoc.endDate;
+        const allDayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+        // Build actual date range
+        const startObj = new Date(scheduleStartDate);
+        const endObj = scheduleEndDate ? new Date(scheduleEndDate) : new Date(startObj.getTime() + 6 * 24 * 60 * 60 * 1000);
+        const datesInRange = [];
+        for (let d = new Date(startObj); d <= endObj; d.setDate(d.getDate() + 1)) {
+            datesInRange.push(new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0]);
+        }
+
         container.innerHTML = "";
 
-        days.forEach((day, dayIndex) => {
-            // Calculate date for this day
-            const parts = scheduleStartDate.split("-");
-            const baseDate = new Date(parts[0], parts[1] - 1, parts[2]);
-            const currentDayObj = new Date(baseDate);
-            currentDayObj.setDate(baseDate.getDate() + dayIndex);
-            const formattedDate = new Date(
-                currentDayObj.getTime() - currentDayObj.getTimezoneOffset() * 60000
-            ).toISOString().split("T")[0];
+        datesInRange.forEach(formattedDate => {
+            const dayObj = new Date(formattedDate);
+            const day = allDayNames[dayObj.getDay()];
 
             // Group shifts by station
             const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
@@ -586,9 +609,9 @@ async function loadMyRequestHistory() {
             const [yr, mo, dy] = req.date.split("-").map(Number);
             const requestDate = new Date(yr, mo - 1, dy);
             
-            // Auto-delete past approved requests
-            if (req.status === "approved" && requestDate < today) {
-                console.log(`Deleting past approved request: ${req.date}`);
+            // Auto-delete past approved or rejected requests
+            if ((req.status === "approved" || req.status === "rejected") && requestDate < today) {
+                console.log(`Deleting past ${req.status} request: ${req.date}`);
                 deletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
                 return; // Don't show this request
             }

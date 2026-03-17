@@ -92,13 +92,16 @@ window.loadExistingSchedules = async function() {
                 const startDate = data.startDate;
                 existingScheduleDates.push(startDate);
                 
-                // Calculate end date (Sunday)
-                const start = new Date(startDate);
-                const end = new Date(start);
-                end.setDate(start.getDate() + 6);
-                const endDate = end.toISOString().split('T')[0];
+                // Use stored endDate or fallback to startDate + 6
+                const endDate = data.endDate || (() => {
+                    const start = new Date(startDate);
+                    start.setDate(start.getDate() + 6);
+                    return new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                })();
                 
-                const published = data.published ? '✅ Published' : '⏳ Draft';
+                console.log(`Schedule: startDate=${startDate}, endDate=${endDate}, stored endDate=${data.endDate}`);
+                
+                const statusLabel = data.status === 'published' ? '✅ Published' : '⏳ Draft';
                 
                 html += `
                     <div style="
@@ -116,7 +119,7 @@ window.loadExistingSchedules = async function() {
                             <strong style="color: #DC0000; font-size: 15px;">${startDate}</strong> 
                             <span style="color: #666;">to</span> 
                             <strong style="color: #DC0000; font-size: 15px;">${endDate}</strong>
-                            <span style="color: #666; font-size: 13px; margin-left: 12px;">${published}</span>
+                            <span style="color: #666; font-size: 13px; margin-left: 12px;">${statusLabel}</span>
                         </div>
                         <button onclick="markScheduleAsDone('${scheduleId}', '${startDate}')" style="
                             background: linear-gradient(135deg, #FFC700 0%, #FFB000 100%);
@@ -164,26 +167,40 @@ window.markScheduleAsDone = async function(scheduleId, startDate) {
 
 // Check if selected date already has a schedule
 window.checkExistingSchedule = function() {
-    const startDateInput = document.getElementById("startDate");
+    const startDateInput = document.getElementById("scheduleStartDate");
+    const endDateInput = document.getElementById("scheduleEndDate");
     const warningDiv = document.getElementById("scheduleWarning");
+    const dateRangeInfo = document.getElementById("dateRangeInfo");
+    const dateRangeDisplay = document.getElementById("dateRangeDisplay");
     
-    if (!startDateInput || !warningDiv) return;
+    if (!startDateInput || !endDateInput || !warningDiv) return;
     
-    const selectedDate = startDateInput.value;
-    if (!selectedDate) {
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
+    
+    if (!startDate || !endDate) {
         warningDiv.style.display = 'none';
+        dateRangeInfo.style.display = 'none';
         return;
     }
     
-    // Force to Monday
-    const date = new Date(selectedDate);
-    const day = date.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    date.setDate(date.getDate() + diff);
-    const mondayDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+    if (new Date(startDate) > new Date(endDate)) {
+        warningDiv.style.display = 'none';
+        dateRangeInfo.style.display = 'none';
+        return;
+    }
     
-    // Check if this Monday already has a schedule
-    if (existingScheduleDates.includes(mondayDate)) {
+    // Show date range info
+    const dayCount = Math.floor((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+    dateRangeDisplay.textContent = `${startDate} to ${endDate} (${dayCount} days)`;
+    dateRangeInfo.style.display = 'block';
+    
+    // Check if this date range already has a schedule
+    const hasConflict = existingScheduleDates.some(existingDate => {
+        return existingDate >= startDate && existingDate <= endDate;
+    });
+    
+    if (hasConflict) {
         warningDiv.style.display = 'block';
     } else {
         warningDiv.style.display = 'none';
@@ -1373,36 +1390,45 @@ window.deleteCrewMember = async function(crewId, crewName) {
 // ===============================
 window.generateSchedule = async function () {
     try {
-        const startDateInput = document.getElementById("startDate").value;
-        if (!startDateInput) {
-            alert("Please select a start date.");
+        const startDateInput = document.getElementById("scheduleStartDate").value;
+        const endDateInput = document.getElementById("scheduleEndDate").value;
+        
+        if (!startDateInput || !endDateInput) {
+            alert("Please select both start and end dates.");
             return;
         }
+        
+        const startDate = new Date(startDateInput);
+        const endDate = new Date(endDateInput);
+        
+        if (startDate > endDate) {
+            alert("End date must be after or equal to start date.");
+            return;
+        }
+        
+        const correctedStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+        const correctedEndDate = new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
 
-        // Force start date to Monday
-        const selectedDate = new Date(startDateInput);
-        const day = selectedDate.getDay();
-        const diff = day === 0 ? -6 : 1 - day;
-        selectedDate.setDate(selectedDate.getDate() + diff);
-        const correctedStartDate = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
-
-        // Check if schedule already exists for this week
+        // Check if any active (non-archived) schedule already exists with the same start date
         const existingScheduleQuery = query(
             collection(db, "weeklySchedules"),
             where("startDate", "==", correctedStartDate)
         );
         const existingSchedules = await getDocs(existingScheduleQuery);
+        const activeConflicts = existingSchedules.docs.filter(d => !d.data().archived);
         
-        if (!existingSchedules.empty) {
+        if (activeConflicts.length > 0) {
+            const existing = activeConflicts[0].data();
+            const existingEnd = existing.endDate || "unknown";
             alert(
                 `❌ CANNOT GENERATE SCHEDULE\n\n` +
-                `A schedule already exists for the week starting ${correctedStartDate}.\n\n` +
+                `A schedule already exists starting on ${correctedStartDate} (ends: ${existingEnd}).\n\n` +
                 `Please:\n` +
                 `1. Mark the existing schedule as "Done" first, OR\n` +
                 `2. Delete it from Firebase manually, OR\n` +
-                `3. Choose a different week`
+                `3. Choose a different start date`
             );
-            return; // BLOCK the generation completely
+            return;
         }
 
         // Get all crew
@@ -1458,7 +1484,20 @@ window.generateSchedule = async function () {
             });
         });
 
-        const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+        const allDayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        
+        // Build list of days from start to end date
+        const days = [];
+        const dayDates = {};
+        const startObj = new Date(correctedStartDate);
+        const endObj = new Date(correctedEndDate);
+        for (let d = new Date(startObj); d <= endObj; d.setDate(d.getDate() + 1)) {
+            const dayName = allDayNames[d.getDay()];
+            const dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+            days.push(dayName);
+            dayDates[dayName] = dateStr;
+        }
+        
         const scheduleData = {};
         
         // Track assignments per crew for balancing
@@ -1471,11 +1510,7 @@ window.generateSchedule = async function () {
         // No automatic rest day assignment - generator respects whatever the manager configured
         
         days.forEach((day, dayIndex) => {
-            const baseDateParts = correctedStartDate.split("-");
-            const baseDate = new Date(baseDateParts[0], baseDateParts[1]-1, baseDateParts[2]);
-            const currentDate = new Date(baseDate);
-            currentDate.setDate(baseDate.getDate() + dayIndex);
-            const formattedDate = new Date(currentDate.getTime() - currentDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+            const formattedDate = dayDates[day];
 
             // Get all crew available for this day (including emergency rest day override)
             const allDayCrewPool = crewList.filter(crew => {
@@ -2156,6 +2191,7 @@ window.generateSchedule = async function () {
         // Save to Firestore
         await addDoc(collection(db, "weeklySchedules"), {
             startDate: correctedStartDate,
+            endDate: correctedEndDate,
             scheduleData: scheduleData,
             status: "draft",
             createdAt: serverTimestamp()
@@ -2235,15 +2271,15 @@ window.loadRequests = async function() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        // Auto-delete past approved requests
+        // Auto-delete past approved or rejected requests
         const deletePromises = [];
         snap.forEach(docSnap => {
             const req = docSnap.data();
-            if (req.status === "approved") {
+            if (req.status === "approved" || req.status === "rejected") {
                 const [yr, mo, dy] = req.date.split("-").map(Number);
                 const requestDate = new Date(yr, mo - 1, dy);
                 if (requestDate < today) {
-                    console.log(`Manager: Deleting past approved request: ${req.date}`);
+                    console.log(`Manager: Deleting past ${req.status} request: ${req.date}`);
                     deletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
                 }
             }

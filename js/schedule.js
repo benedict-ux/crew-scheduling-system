@@ -94,25 +94,31 @@ window.loadSchedule = async function () {
 
         container.innerHTML = "";
 
+        // Get schedule end date (fallback to 7 days if not available)
+        const scheduleEndDate = scheduleDoc.data().endDate;
+        
+        // Generate array of dates from start to end
+        const startDateObj = new Date(scheduleStartDate);
+        const endDateObj = scheduleEndDate ? new Date(scheduleEndDate) : new Date(startDateObj.getTime() + 6 * 24 * 60 * 60 * 1000);
+        
+        const datesInRange = [];
+        for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+            const dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+            datesInRange.push(dateStr);
+        }
+
+        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
-        days.forEach((day, dayIndex) => {
-
-            // ✅ Safe PH date conversion
-            const parts = scheduleStartDate.split("-");
-            const baseDate = new Date(parts[0], parts[1] - 1, parts[2]);
-
-            const currentDayObj = new Date(baseDate);
-            currentDayObj.setDate(baseDate.getDate() + dayIndex);
-
-            const formattedDate = new Date(
-                currentDayObj.getTime() - currentDayObj.getTimezoneOffset() * 60000
-            ).toISOString().split("T")[0];
+        datesInRange.forEach((dateStr, dayIndex) => {
+            const currentDayObj = new Date(dateStr);
+            const dayName = dayNames[currentDayObj.getDay()];
+            const formattedDate = dateStr;
 
             // 🔥 Filter crew for this specific day
             const availableCrewForDay = crewData.filter(crew => {
                 // Check rest days
-                if (crew.restDays?.[day] === true) {
+                if (crew.restDays?.[dayName] === true) {
                     return false;
                 }
                 
@@ -123,13 +129,13 @@ window.loadSchedule = async function () {
                 }
                 
                 // Check if "No Class" - if yes, crew is available regardless of school times
-                const noClass = crew.noClass?.[day] === true;
+                const noClass = crew.noClass?.[dayName] === true;
                 if (noClass) {
                     return true; // No class = available to work
                 }
                 
                 // If school ends at 6 PM (18:00) or later, crew cannot work at all that day
-                const schoolEndTime = crew.schoolEndTime?.[day];
+                const schoolEndTime = crew.schoolEndTime?.[dayName];
                 if (schoolEndTime && schoolEndTime !== "") {
                     const endHour = parseInt(schoolEndTime.split(':')[0]);
                     if (endHour >= 18) {
@@ -144,7 +150,7 @@ window.loadSchedule = async function () {
             const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING", "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
             const shiftsByStation = {};
             
-            fullScheduleData[day].forEach((shift, shiftIndex) => {
+            fullScheduleData[dayName].forEach((shift, shiftIndex) => {
                 if (!shiftsByStation[shift.station]) {
                     shiftsByStation[shift.station] = [];
                 }
@@ -208,11 +214,11 @@ window.loadSchedule = async function () {
 
             // Format date for print header e.g. "MARCH 16, 2026 (MONDAY)"
             const monthNames = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
-            const printDateLabel = `DATE: ${monthNames[currentDayObj.getMonth()]} ${currentDayObj.getDate()}, ${currentDayObj.getFullYear()} (${day.toUpperCase()})`;
+            const printDateLabel = `DATE: ${monthNames[currentDayObj.getMonth()]} ${currentDayObj.getDate()}, ${currentDayObj.getFullYear()} (${dayName.toUpperCase()})`;
 
             container.innerHTML += `
-                <div id="day-${day}" class="day-container">
-                    <h2>${day}</h2>
+                <div id="day-${dayName}" class="day-container">
+                    <h2>${dayName}</h2>
                     <h3>DATE: ${formattedDate}</h3>
 
                     <!-- Print-only header -->
@@ -272,8 +278,8 @@ window.loadSchedule = async function () {
                                     }
                                     
                                     const shiftId = shift.originalIndex === -1 ? 
-                                        `mid-${day}-${stationName}` : 
-                                        `shift-${day}-${shift.originalIndex}`;
+                                        `mid-${dayName}-${stationName}` : 
+                                        `shift-${dayName}-${shift.originalIndex}`;
                                     
                                     const hideWhenUnassigned = ["PC", "MID", "MID-DINING", "MID-KITCHEN"];
                                     const isUnassigned = shift.crewName === "Unassigned";
@@ -289,7 +295,7 @@ window.loadSchedule = async function () {
                                             ${stationCell}
                                             <td class="print-name-cell">
                                                 <select id="${shiftId}" 
-                                                    onchange="updateDropdownsForDay('${day}')" 
+                                                    onchange="updateDropdownsForDay('${dayName}')" 
                                                     onfocus="this.dataset.oldValue = this.value"
                                                     onkeydown="preventArrowKeyChange(event, this)">
                                                     <option value="Unassigned" ${isUnassigned ? "selected" : ""}>Unassigned</option>
@@ -349,10 +355,10 @@ window.loadSchedule = async function () {
                         </div>
                         
                         <div class="save-button-container" style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-left: auto;">
-                            <button onclick="saveDayChanges('${day}')" style="white-space: nowrap;">
-                                💾 Save ${day} Changes
+                            <button onclick="saveDayChanges('${dayName}')" style="white-space: nowrap;">
+                                💾 Save ${dayName} Changes
                             </button>
-                            <span id="save-status-${day}" style="font-weight: bold; font-size: 14px;"></span>
+                            <span id="save-status-${dayName}" style="font-weight: bold; font-size: 14px;"></span>
                         </div>
                     </div>
                 </div>
@@ -689,188 +695,4 @@ window.logout = async function() {
         console.error("Error logging out:", e);
         alert("Error logging out. Please try again.");
     }
-};
-
-
-// Export schedule to Excel with separate sheets for each day
-window.exportToCSV = function() {
-    if (typeof XLSX === 'undefined') {
-        alert('Excel library not loaded. Please refresh the page and try again.');
-        return;
-    }
-
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    const workbook = XLSX.utils.book_new();
-    let hasData = false;
-
-    days.forEach(day => {
-        const dayContainer = document.getElementById(`day-${day}`);
-        if (!dayContainer) return;
-
-        // Create worksheet data array
-        const wsData = [];
-        
-        // Add day header
-        const dateText = dayContainer.querySelector('h3')?.textContent || '';
-        wsData.push([day.toUpperCase()]);
-        wsData.push([dateText]);
-        wsData.push([]); // Empty row for spacing
-        
-        // Add column headers
-        wsData.push(['STATION', 'NAME', 'TIME', '15', '30', '60', '15', 'SIGNATURE']);
-
-        // Get table and process by station groups
-        const table = dayContainer.querySelector('table tbody');
-        if (table) {
-            const rows = Array.from(table.querySelectorAll('tr'));
-            let currentStation = '';
-            let isFirstInStation = true;
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length === 0) return;
-                
-                // Check if first cell is a station (has rowspan or is bold/red)
-                const firstCell = cells[0];
-                const firstCellText = firstCell.textContent.trim();
-                
-                // If this is a new station (first cell has rowspan > 1)
-                if (firstCell.rowSpan > 1 && firstCellText) {
-                    currentStation = firstCellText;
-                    isFirstInStation = true;
-                }
-                
-                // Get name from second cell (dropdown or text)
-                const nameCell = cells[1];
-                const nameSelect = nameCell?.querySelector('select');
-                const name = nameSelect ? nameSelect.value : (nameCell?.textContent.trim() || '');
-                
-                // Get time from third cell
-                const timeCell = cells[2];
-                const time = timeCell?.textContent.trim() || '';
-                
-                // Skip blank rows (rows with no name)
-                if (!name && !time) return;
-                
-                // Add row data
-                if (isFirstInStation && currentStation) {
-                    // First row of station - include station name
-                    wsData.push([currentStation, name, time, '', '', '', '', '']);
-                    isFirstInStation = false;
-                } else {
-                    // Subsequent rows - blank station column
-                    wsData.push(['', name, time, '', '', '', '', '']);
-                }
-            });
-            
-            hasData = true;
-        }
-
-        // Add spacing before reminder
-        wsData.push([]);
-        wsData.push([]);
-        
-        // Add reminder section
-        wsData.push(['ASK YOUR TL IF THERE\'S CORRECTION']);
-        wsData.push(['DON\'T BE LATE']);
-        wsData.push(['EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA']);
-        wsData.push(['PLEASE CALL STORE OR SEND MESSAGE IN OUR']);
-        wsData.push(['FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE']);
-        wsData.push(['REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST']);
-
-        // Create worksheet
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-        // Set column widths
-        ws['!cols'] = [
-            { wch: 18 },  // STATION
-            { wch: 22 },  // NAME
-            { wch: 20 },  // TIME
-            { wch: 10 },  // 15
-            { wch: 10 },  // 30
-            { wch: 10 },  // 60
-            { wch: 10 },  // 15
-            { wch: 22 }   // SIGNATURE
-        ];
-
-        // Set row heights
-        ws['!rows'] = [];
-        for (let i = 0; i < wsData.length; i++) {
-            ws['!rows'][i] = { hpt: 22 };
-        }
-        ws['!rows'][0] = { hpt: 28 }; // Day header
-        ws['!rows'][3] = { hpt: 28 }; // Column headers
-
-        // Apply cell styling
-        const range = XLSX.utils.decode_range(ws['!ref']);
-        
-        for (let R = range.s.r; R <= range.e.r; ++R) {
-            for (let C = range.s.c; C <= range.e.c; ++C) {
-                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                if (!ws[cellAddress]) continue;
-                
-                if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                
-                // Style header row (row 3)
-                if (R === 3) {
-                    ws[cellAddress].s = {
-                        fill: { fgColor: { rgb: "FFD700" } },
-                        font: { bold: true, sz: 12 },
-                        alignment: { horizontal: "center", vertical: "center" },
-                        border: {
-                            top: { style: "thin" },
-                            bottom: { style: "thin" },
-                            left: { style: "thin" },
-                            right: { style: "thin" }
-                        }
-                    };
-                }
-                // Style station names (column A with value)
-                else if (C === 0 && R > 3 && ws[cellAddress].v && ws[cellAddress].v !== '') {
-                    const reminderStart = wsData.findIndex((row, idx) => idx > 3 && row[0] && row[0].includes('ASK YOUR TL'));
-                    if (reminderStart === -1 || R < reminderStart) {
-                        ws[cellAddress].s = {
-                            fill: { fgColor: { rgb: "FFD700" } },
-                            font: { bold: true, sz: 11 },
-                            alignment: { horizontal: "center", vertical: "center" },
-                            border: {
-                                top: { style: "thin" },
-                                bottom: { style: "thin" },
-                                left: { style: "thin" },
-                                right: { style: "thin" }
-                            }
-                        };
-                    }
-                }
-                // Style reminder section
-                else if (R > 3 && C === 0 && ws[cellAddress].v && 
-                        (ws[cellAddress].v.includes('ASK YOUR TL') || 
-                         ws[cellAddress].v.includes('DON\'T BE LATE') ||
-                         ws[cellAddress].v.includes('EXCESSIVE') ||
-                         ws[cellAddress].v.includes('PLEASE CALL') ||
-                         ws[cellAddress].v.includes('FOR NO CALL') ||
-                         ws[cellAddress].v.includes('REQUEST MUST'))) {
-                    ws[cellAddress].s = {
-                        fill: { fgColor: { rgb: "FFD700" } },
-                        font: { sz: 10 },
-                        alignment: { horizontal: "left", vertical: "center" }
-                    };
-                }
-            }
-        }
-
-        // Add worksheet to workbook
-        XLSX.utils.book_append_sheet(workbook, ws, day);
-    });
-
-    if (!hasData) {
-        alert('❌ No schedule data found. Please load the schedule first.');
-        return;
-    }
-
-    // Generate Excel file and download
-    const dateStr = scheduleStartDate || new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `weekly_schedule_${dateStr}.xlsx`, { cellStyles: true });
-    
-    alert('✅ Schedule exported to Excel!');
 };

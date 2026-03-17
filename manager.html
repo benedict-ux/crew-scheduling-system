@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+        @media (max-width: 1024px) {
+            .date-range-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -38,14 +45,26 @@
     <div class="card">
         <h1>Manager Dashboard</h1>
 
-        <label for="startDate"><strong>Select Week Start Date (Monday)</strong></label>
-        <input type="date" id="startDate" onchange="checkExistingSchedule()">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;" class="date-range-grid">
+            <div>
+                <label for="scheduleStartDate"><strong>Schedule Start Date</strong></label>
+                <input type="date" id="scheduleStartDate" onchange="checkExistingSchedule()">
+            </div>
+            <div>
+                <label for="scheduleEndDate"><strong>Schedule End Date</strong></label>
+                <input type="date" id="scheduleEndDate" onchange="checkExistingSchedule()">
+            </div>
+        </div>
         
-        <div id="scheduleWarning" style="display: none; margin-top: 10px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404;">
-            ⚠️ <strong>Warning:</strong> A schedule already exists for this week!
+        <div id="dateRangeInfo" style="display: none; margin-bottom: 15px; padding: 12px; background: #e7f3ff; border: 2px solid #2196F3; border-radius: 8px; color: #1565c0; font-weight: 600;">
+            📅 <span id="dateRangeDisplay"></span>
+        </div>
+        
+        <div id="scheduleWarning" style="display: none; margin-bottom: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404;">
+            ⚠️ <strong>Warning:</strong> A schedule already exists for this date range!
         </div>
 
-        <br><br>
+        <br>
 
         <button onclick="generateSchedule()">Generate Schedule</button>
         <button onclick="publishLatest()">Publish Schedule</button>

@@ -66,8 +66,23 @@
 
         <br>
 
-        <button onclick="generateSchedule()">Generate Schedule</button>
+        <button id="generateBtn" onclick="generateSchedule()">Generate Schedule</button>
         <button onclick="publishLatest()">Publish Schedule</button>
+
+        <!-- Generation Loading Overlay -->
+        <div id="generateOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
+            <div style="background:white; border-radius:16px; padding:40px 50px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+                <img src="assets/jollibee-logo.png" alt="Jollibee" style="width:80px; height:80px; object-fit:contain; animation:spin 1s linear infinite; display:inline-block;">
+                <h3 style="color:#DC0000; margin:16px 0 8px; font-size:20px;">Generating Schedule...</h3>
+                <p id="generateStatus" style="color:#666; font-size:14px; margin:0;">Loading crew data</p>
+                <div style="margin-top:16px; height:6px; background:#f0f0f0; border-radius:3px; overflow:hidden; width:260px;">
+                    <div id="generateProgress" style="height:100%; width:0%; background:linear-gradient(90deg,#DC0000,#FFC700); border-radius:3px; transition:width 0.4s ease;"></div>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        </style>
         
         <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 2px solid #e0e0e0;">
             <h3 style="margin: 0 0 15px 0; color: #DC0000; font-size: 20px; font-weight: 600;">📅 Existing Schedules</h3>

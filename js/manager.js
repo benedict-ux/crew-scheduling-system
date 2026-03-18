@@ -47,6 +47,7 @@ onAuthStateChanged(auth, async (user) => {
         
         // Load all data in parallel for faster performance
         Promise.all([
+            cleanupPastUnavailability(),
             loadCrew(),
             loadRequests(),
             loadExistingSchedules()
@@ -57,6 +58,51 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = "login.html";
     }
 });
+
+// Holds generated schedule in memory until published
+let pendingSchedule = null;
+
+// Auto-delete past unavailability requests and clean up crewProfiles.unavailableDates
+async function cleanupPastUnavailability() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    try {
+        // 1. Delete past approved/rejected requests
+        const snap = await getDocs(query(
+            collection(db, "unavailabilityRequests"),
+            where("status", "in", ["approved", "rejected"])
+        ));
+        const deletePromises = [];
+        snap.forEach(docSnap => {
+            const req = docSnap.data();
+            const [yr, mo, dy] = req.date.split("-").map(Number);
+            if (new Date(yr, mo - 1, dy) < today) {
+                deletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
+            }
+        });
+        if (deletePromises.length > 0) await Promise.all(deletePromises);
+
+        // 2. Remove past dates from crewProfiles.unavailableDates
+        const crewSnap = await getDocs(collection(db, "crewProfiles"));
+        const crewUpdatePromises = [];
+        crewSnap.forEach(crewDoc => {
+            const data = crewDoc.data();
+            const dates = data.unavailableDates || [];
+            const futureDates = dates.filter(d => {
+                const [yr, mo, dy] = d.split("-").map(Number);
+                return new Date(yr, mo - 1, dy) >= today;
+            });
+            if (futureDates.length !== dates.length) {
+                crewUpdatePromises.push(updateDoc(doc(db, "crewProfiles", crewDoc.id), { unavailableDates: futureDates }));
+            }
+        });
+        if (crewUpdatePromises.length > 0) await Promise.all(crewUpdatePromises);
+
+        console.log("Cleanup done: past unavailability removed.");
+    } catch (e) {
+        console.warn("Cleanup error:", e.message);
+    }
+}
 
 // Store existing schedule dates globally
 let existingScheduleDates = [];
@@ -75,11 +121,11 @@ window.loadExistingSchedules = async function() {
         existingScheduleDates = [];
         let html = '';
         
-        // Filter out archived schedules
+        // Filter out archived and draft schedules - only show published
         const activeSchedules = [];
         schedulesSnapshot.forEach(docSnap => {
             const data = docSnap.data();
-            if (!data.archived) {
+            if (!data.archived && data.status === 'published') {
                 activeSchedules.push({ id: docSnap.id, data });
             }
         });
@@ -1388,12 +1434,33 @@ window.deleteCrewMember = async function(crewId, crewName) {
 // ===============================
 // 4. GENERATE SCHEDULE
 // ===============================
+// 4. GENERATE SCHEDULE
+// ===============================
+function setGenerateProgress(status, percent) {
+    const overlay = document.getElementById("generateOverlay");
+    const statusEl = document.getElementById("generateStatus");
+    const progressEl = document.getElementById("generateProgress");
+    if (overlay) overlay.style.display = "flex";
+    if (statusEl) statusEl.textContent = status;
+    if (progressEl) progressEl.style.width = percent + "%";
+}
+function hideGenerateOverlay() {
+    const overlay = document.getElementById("generateOverlay");
+    const btn = document.getElementById("generateBtn");
+    if (overlay) overlay.style.display = "none";
+    if (btn) btn.disabled = false;
+}
+
 window.generateSchedule = async function () {
+    const btn = document.getElementById("generateBtn");
+    if (btn) btn.disabled = true;
+    setGenerateProgress("Validating dates...", 5);
     try {
         const startDateInput = document.getElementById("scheduleStartDate").value;
         const endDateInput = document.getElementById("scheduleEndDate").value;
         
         if (!startDateInput || !endDateInput) {
+            hideGenerateOverlay();
             alert("Please select both start and end dates.");
             return;
         }
@@ -1402,6 +1469,7 @@ window.generateSchedule = async function () {
         const endDate = new Date(endDateInput);
         
         if (startDate > endDate) {
+            hideGenerateOverlay();
             alert("End date must be after or equal to start date.");
             return;
         }
@@ -1409,6 +1477,7 @@ window.generateSchedule = async function () {
         const correctedStartDate = new Date(startDate.getTime() - startDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
         const correctedEndDate = new Date(endDate.getTime() - endDate.getTimezoneOffset() * 60000).toISOString().split("T")[0];
 
+        setGenerateProgress("Checking for conflicts...", 15);
         // Check if any active (non-archived) schedule already exists with the same start date
         const existingScheduleQuery = query(
             collection(db, "weeklySchedules"),
@@ -1420,6 +1489,7 @@ window.generateSchedule = async function () {
         if (activeConflicts.length > 0) {
             const existing = activeConflicts[0].data();
             const existingEnd = existing.endDate || "unknown";
+            hideGenerateOverlay();
             alert(
                 `❌ CANNOT GENERATE SCHEDULE\n\n` +
                 `A schedule already exists starting on ${correctedStartDate} (ends: ${existingEnd}).\n\n` +
@@ -1431,15 +1501,40 @@ window.generateSchedule = async function () {
             return;
         }
 
+        setGenerateProgress("Loading crew data...", 30);
         // Get all crew
         const crewSnapshot = await getDocs(collection(db, "crewProfiles"));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Clean up stale approved/rejected unavailability requests from Firestore
+        const staleRequestsSnap = await getDocs(
+            query(collection(db, "unavailabilityRequests"), where("status", "in", ["approved", "rejected"]))
+        );
+        const staleDeletePromises = [];
+        staleRequestsSnap.forEach(docSnap => {
+            const req = docSnap.data();
+            const [yr, mo, dy] = req.date.split("-").map(Number);
+            if (new Date(yr, mo - 1, dy) < today) {
+                staleDeletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
+            }
+        });
+        if (staleDeletePromises.length > 0) {
+            await Promise.all(staleDeletePromises);
+            console.log(`Cleaned up ${staleDeletePromises.length} stale request(s) before generation`);
+        }
         const crewList = crewSnapshot.docs.map(doc => {
             const data = doc.data();
+            // Filter out past unavailable dates so they don't block future schedule generation
+            const unavailableDates = (data.unavailableDates || []).filter(dateStr => {
+                const [yr, mo, dy] = dateStr.split("-").map(Number);
+                return new Date(yr, mo - 1, dy) >= today;
+            });
             return {
                 ...data,
                 name: data.name,
                 nickname: data.nickname || "",
-                unavailableDates: data.unavailableDates || [],
+                unavailableDates,
                 topPriorityStation: data.topPriorityStation || "",
                 secondaryStations: data.secondaryStations || [],
                 schoolStartTime: data.schoolStartTime || {},
@@ -1459,6 +1554,7 @@ window.generateSchedule = async function () {
             return;
         }
 
+        setGenerateProgress("Loading shift templates...", 50);
         // Load shift templates
         const templatesSnapshot = await getDocs(collection(db, "shiftTemplates"));
         if (templatesSnapshot.empty) {
@@ -1509,6 +1605,7 @@ window.generateSchedule = async function () {
         // Rest days are 100% manual - set by manager in crew profiles only
         // No automatic rest day assignment - generator respects whatever the manager configured
         
+        setGenerateProgress("Assigning crew to shifts...", 70);
         days.forEach((day, dayIndex) => {
             const formattedDate = dayDates[day];
 
@@ -2188,19 +2285,22 @@ window.generateSchedule = async function () {
             console.log(`  ✅ Added PC station (MID 10:00AM-7:00PM) - Unassigned`);
         });
 
-        // Save to Firestore
-        await addDoc(collection(db, "weeklySchedules"), {
+        setGenerateProgress("Saving to database...", 90);
+        // Store in memory - will be saved to Firestore on Publish
+        pendingSchedule = {
             startDate: correctedStartDate,
             endDate: correctedEndDate,
-            scheduleData: scheduleData,
-            status: "draft",
-            createdAt: serverTimestamp()
-        });
+            scheduleData: scheduleData
+        };
 
-        alert("Schedule generated successfully!");
+        setGenerateProgress("Done!", 100);
+        await new Promise(r => setTimeout(r, 500));
+        hideGenerateOverlay();
+        alert("Schedule generated! Click 'Publish Schedule' to make it live.");
 
     } catch (error) {
         console.error("Error:", error);
+        hideGenerateOverlay();
         alert("Generation failed: " + error.message);
     }
 };
@@ -2210,29 +2310,34 @@ window.generateSchedule = async function () {
 // ===============================
 window.publishLatest = async function() {
     try {
-        const q = query(
-            collection(db, "weeklySchedules"), 
-            where("status", "==", "draft"), 
-            orderBy("createdAt", "desc"), 
-            limit(1)
-        );
-        
-        const snap = await getDocs(q);
-        if (snap.empty) return alert("No draft found. Click 'Generate' first!");
-        
-        const draftId = snap.docs[0].id;
-        
-        // Archive old schedules so only 1 is "published"
-        const allSchedules = await getDocs(collection(db, "weeklySchedules"));
-        for (const sDoc of allSchedules.docs) {
-            if (sDoc.id !== draftId) {
-                await updateDoc(doc(db, "weeklySchedules", sDoc.id), { status: "archived" });
-            }
+        if (!pendingSchedule) {
+            return alert("No generated schedule found. Please click 'Generate Schedule' first!");
         }
 
-        await updateDoc(doc(db, "weeklySchedules", draftId), { status: "published" });
+        if (!confirm(`Publish schedule from ${pendingSchedule.startDate} to ${pendingSchedule.endDate}?\n\nThis will make it visible to all crew.`)) return;
+
+        // Archive any existing published schedules
+        const allSchedules = await getDocs(collection(db, "weeklySchedules"));
+        const archivePromises = [];
+        allSchedules.forEach(sDoc => {
+            if (!sDoc.data().archived) {
+                archivePromises.push(updateDoc(doc(db, "weeklySchedules", sDoc.id), { archived: true, archivedAt: serverTimestamp() }));
+            }
+        });
+        if (archivePromises.length > 0) await Promise.all(archivePromises);
+
+        // Save to Firestore as published
+        await addDoc(collection(db, "weeklySchedules"), {
+            startDate: pendingSchedule.startDate,
+            endDate: pendingSchedule.endDate,
+            scheduleData: pendingSchedule.scheduleData,
+            status: "published",
+            createdAt: serverTimestamp()
+        });
+
+        pendingSchedule = null;
         alert("Schedule is now LIVE!");
-        window.location.reload(); 
+        window.location.reload();
     } catch (e) { alert("Publish Error: " + e.message); }
 };
 

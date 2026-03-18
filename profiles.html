@@ -41,7 +41,7 @@
             <input type="text" id="crewSearchInput" placeholder="🔍 Search crew by name..." 
                 onkeyup="searchCrew()" 
                 style="flex: 1; padding: 10px 15px; font-size: 16px; border: 2px solid #ccc; border-radius: 5px;">
-            <button onclick="loadCrew()">Refresh Crew Profiles</button>
+            <button onclick="document.getElementById('crewSearchInput').value=''; loadCrew()">Refresh Crew Profiles</button>
             <button onclick="openAddCrewModal()" style="background: #28a745;">➕ Add Crew Profile</button>
         </div>
     </div>

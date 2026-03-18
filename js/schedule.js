@@ -8,13 +8,58 @@ import {
     orderBy,
     limit,
     getDocs,
-    updateDoc
+    updateDoc,
+    deleteDoc,
+    doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 let fullScheduleData = {};
 let scheduleStartDate = null;
 let allCrewData = []; // Store crew data globally for dropdown updates
 let approvedDates = {}; // Store approved unavailability dates globally
+
+// Auto-delete past unavailability requests and clean up crewProfiles.unavailableDates
+async function cleanupPastUnavailability() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    try {
+        // 1. Delete past approved/rejected requests from unavailabilityRequests
+        const snap = await getDocs(query(
+            collection(db, "unavailabilityRequests"),
+            where("status", "in", ["approved", "rejected"])
+        ));
+        const deletePromises = [];
+        snap.forEach(docSnap => {
+            const req = docSnap.data();
+            const [yr, mo, dy] = req.date.split("-").map(Number);
+            if (new Date(yr, mo - 1, dy) < today) {
+                deletePromises.push(deleteDoc(doc(db, "unavailabilityRequests", docSnap.id)));
+            }
+        });
+        if (deletePromises.length > 0) await Promise.all(deletePromises);
+
+        // 2. Remove past dates from crewProfiles.unavailableDates
+        const crewSnap = await getDocs(collection(db, "crewProfiles"));
+        const crewUpdatePromises = [];
+        crewSnap.forEach(crewDoc => {
+            const data = crewDoc.data();
+            const dates = data.unavailableDates || [];
+            const futureDates = dates.filter(d => {
+                const [yr, mo, dy] = d.split("-").map(Number);
+                return new Date(yr, mo - 1, dy) >= today;
+            });
+            if (futureDates.length !== dates.length) {
+                crewUpdatePromises.push(updateDoc(doc(db, "crewProfiles", crewDoc.id), { unavailableDates: futureDates }));
+            }
+        });
+        if (crewUpdatePromises.length > 0) await Promise.all(crewUpdatePromises);
+
+        console.log("Cleanup done: past unavailability removed.");
+    } catch (e) {
+        console.warn("Cleanup error:", e.message);
+    }
+}
 
 // Helper: Converts "8:00PM" to minutes for comparison
 function timeToMinutes(timeStr) {
@@ -39,8 +84,8 @@ window.loadSchedule = async function () {
     container.innerHTML = "Loading schedule...";
 
     try {
-
-        // 🔥 Load latest PUBLISHED and NON-ARCHIVED schedule
+        // Auto-cleanup past unavailability on every schedule page load
+        await cleanupPastUnavailability();
         const q = query(
             collection(db, "weeklySchedules"),
             where("status", "==", "published"),
@@ -76,7 +121,9 @@ window.loadSchedule = async function () {
         const crewData = crewSnapshot.docs.map(doc => doc.data());
         allCrewData = crewData; // Store globally for dropdown updates
 
-        // 🔥 Load approved unavailability requests for this week
+        // 🔥 Load approved unavailability requests - only current/future dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const approvedRequestsSnapshot = await getDocs(query(
             collection(db, "unavailabilityRequests"),
             where("status", "==", "approved")
@@ -84,6 +131,9 @@ window.loadSchedule = async function () {
         approvedDates = {};
         approvedRequestsSnapshot.forEach(doc => {
             const req = doc.data();
+            const [yr, mo, dy] = req.date.split("-").map(Number);
+            const reqDate = new Date(yr, mo - 1, dy);
+            if (reqDate < today) return; // skip past requests
             if (!approvedDates[req.date]) {
                 approvedDates[req.date] = [];
             }

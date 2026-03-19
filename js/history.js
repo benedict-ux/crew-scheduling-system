@@ -145,6 +145,7 @@ window.viewScheduleModal = async function(scheduleId) {
         const startDate = scheduleData.startDate;
         const scheduleEndDate = scheduleData.endDate;
         const scheduleByDay = scheduleData.scheduleData;
+        const scheduleNotes = scheduleData.notes || {};
         
         // Station order (matches schedule.js)
         const stationOrder = [
@@ -251,9 +252,9 @@ window.viewScheduleModal = async function(scheduleId) {
             });
 
             // Add placeholder MID stations if missing
-            if (!shiftsByStation["MID"]) shiftsByStation["MID"] = [{ station:"MID", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM" }];
-            if (!shiftsByStation["MID-DINING"]) shiftsByStation["MID-DINING"] = [{ station:"MID-DINING", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM" }];
-            if (!shiftsByStation["MID-KITCHEN"]) shiftsByStation["MID-KITCHEN"] = [{ station:"MID-KITCHEN", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM" }];
+            if (!shiftsByStation["MID"]) shiftsByStation["MID"] = [{ station:"MID", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
+            if (!shiftsByStation["MID-DINING"]) shiftsByStation["MID-DINING"] = [{ station:"MID-DINING", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
+            if (!shiftsByStation["MID-KITCHEN"]) shiftsByStation["MID-KITCHEN"] = [{ station:"MID-KITCHEN", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
 
             // Build table rows
             const hideWhenUnassigned = ["PC", "MID", "MID-DINING", "MID-KITCHEN"];
@@ -265,6 +266,28 @@ window.viewScheduleModal = async function(scheduleId) {
                 shifts.forEach((shift, idx) => {
                     const isUnassigned = shift.crewName === "Unassigned";
                     const hideClass = hideWhenUnassigned.includes(stationName) && isUnassigned ? 'hide-if-unassigned' : '';
+
+                    // Reconstruct shiftId matching schedule.js:
+                    // MID placeholder stations use negative originalIndex
+                    // Real shifts use their index in the flat daySchedule array
+                    let shiftId;
+                    if (stationName === "MID" && shift._isMidPlaceholder) {
+                        shiftId = `mid-${day}-MID`;
+                    } else if (stationName === "MID-DINING" && shift._isMidPlaceholder) {
+                        shiftId = `mid-${day}-MID-DINING`;
+                    } else if (stationName === "MID-KITCHEN" && shift._isMidPlaceholder) {
+                        shiftId = `mid-${day}-MID-KITCHEN`;
+                    } else {
+                        // Find the index of this shift in the original flat daySchedule array
+                        const flatIndex = daySchedule.findIndex(s =>
+                            s.station === shift.station &&
+                            s.startTime === shift.startTime &&
+                            s.endTime === shift.endTime &&
+                            s.crewName === shift.crewName
+                        );
+                        shiftId = flatIndex >= 0 ? `shift-${day}-${flatIndex}` : `shift-${day}-${stationName}-${idx}`;
+                    }
+                    const noteValue = (scheduleNotes[day] && scheduleNotes[day][shiftId]) || '';
 
                     const stationCell = idx === 0
                         ? `<td rowspan="${shifts.length * 2}" class="hist-station-cell" style="text-align:left;background:#f8f9fa;">${stationName}</td>`
@@ -278,7 +301,7 @@ window.viewScheduleModal = async function(scheduleId) {
                             <td></td><td></td><td></td><td></td><td></td>
                         </tr>
                         <tr class="hist-blank-row ${hideClass}">
-                            <td colspan="7" style="padding:4px;border:1px solid #eee;"><input type="text" style="width:100%;border:none;background:transparent;font-size:12px;padding:2px;font-family:inherit;"></td>
+                            <td colspan="7" style="padding:4px;border:1px solid #eee;"><span style="width:100%;font-size:12px;padding:2px;font-family:inherit;font-weight:bold;display:block;">${noteValue}</span></td>
                         </tr>`;
                 });
             });
@@ -356,29 +379,52 @@ window.closeScheduleModal = function() {
 };
 
 window.printScheduleModal = function() {
-    // Get the schedule content
     const scheduleContent = document.getElementById('scheduleModalContent');
     if (!scheduleContent) return;
-    
-    // Create a hidden print container
+
+    // Create print container with cloned content
     const printContainer = document.createElement('div');
     printContainer.id = 'printContainer';
     printContainer.innerHTML = scheduleContent.innerHTML;
     printContainer.style.display = 'none';
     document.body.appendChild(printContainer);
-    
-    // Hide everything except print container
+
+    // Process blank rows in the cloned content:
+    // keep rows with notes, remove empty ones, fix rowspans
+    printContainer.querySelectorAll('.day-schedule tbody').forEach(function (tbody) {
+        const blankRows = Array.from(tbody.querySelectorAll('tr.hist-blank-row'));
+        blankRows.forEach(function (row) {
+            const span = row.querySelector('span');
+            const hasNote = span && span.textContent.trim() !== '';
+            if (!hasNote) {
+                row.parentNode.removeChild(row);
+            }
+        });
+
+        // Recalculate rowspans
+        const visibleRows = Array.from(tbody.querySelectorAll('tr'));
+        let i = 0;
+        while (i < visibleRows.length) {
+            const stationCell = visibleRows[i].querySelector('td.hist-station-cell');
+            if (stationCell) {
+                let count = 0;
+                for (let j = i; j < visibleRows.length; j++) {
+                    if (j > i && visibleRows[j].querySelector('td.hist-station-cell')) break;
+                    count++;
+                }
+                stationCell.setAttribute('rowspan', count);
+            }
+            i++;
+        }
+    });
+
     document.body.classList.add('printing');
-    
-    // Close the modal
+
     const modal = document.getElementById('scheduleModal');
     if (modal) modal.style.display = 'none';
-    
-    // Small delay to ensure DOM is ready
+
     setTimeout(() => {
         window.print();
-        
-        // Cleanup after print
         setTimeout(() => {
             document.body.classList.remove('printing');
             if (printContainer) printContainer.remove();

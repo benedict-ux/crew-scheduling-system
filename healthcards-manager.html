@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crew Health Cards - Manager</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<button class="mobile-menu-toggle">
+    <span></span><span></span><span></span>
+</button>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/jollibee-logo.png" alt="Jollibee" class="sidebar-logo">
+        <h2>Crew Scheduling</h2>
+        <p class="sidebar-subtitle">EDSA Kamias Branch</p>
+    </div>
+    <a href="manager.html">📊 Dashboard</a>
+    <a href="schedule.html">📅 Weekly Schedule</a>
+    <a href="profiles.html">👥 Crew Profiles</a>
+    <a href="healthcards-manager.html" style="background: rgba(255,255,255,0.15);">🏥 Health Cards</a>
+    <a href="history.html">📜 History</a>
+    <a href="password.html">🔒 Reset Password</a>
+    <hr>
+    <a href="#" onclick="logout()" style="color: #FFC700;">🚪 Logout</a>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="main">
+    <div class="card">
+        <h1 style="color:#DC0000;">🏥 Crew Health Cards</h1>
+        <p style="color:#666; margin-bottom:10px;">Overview of crew health card and meat handler certificate submissions.</p>
+
+        <div class="hc-stats-row" style="display:flex; gap:10px; margin-bottom:20px; align-items:center; width:100%; box-sizing:border-box; flex-direction:row !important;">
+            <div style="background:#dcfce7; border:2px solid #10b981; border-radius:8px; padding:8px 14px; font-weight:600; color:#065f46; font-size:13px; flex:1; text-align:center; min-width:0;">
+                🟢 <span id="uploadedCount">0</span> Uploaded
+            </div>
+            <div style="background:#fee2e2; border:2px solid #ef4444; border-radius:8px; padding:8px 14px; font-weight:600; color:#991b1b; font-size:13px; flex:1; text-align:center; min-width:0;">
+                🔴 <span id="missingCount">0</span> Missing
+            </div>
+        </div>
+        <button onclick="printAllCards()" style="background:#DC0000; color:white; border:none; border-radius:8px; padding:10px; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap; width:100%; margin-bottom:20px;">🖨️ Print All Cards</button>
+
+        <input type="text" id="hcSearchInput" placeholder="🔍 Search crew by name or nickname..."
+            oninput="filterHealthCards()"
+            style="width:100%; padding:10px 15px; font-size:15px; border:2px solid #ccc; border-radius:8px; margin-bottom:18px; box-sizing:border-box;">
+
+        <div id="crewCardsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap:12px;">
+            <p style="color:#999;">Loading...</p>
+        </div>
+    </div>
+</div>
+
+<!-- View Modal -->
+<div id="viewModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; padding:20px;" onclick="if(event.target.id==='viewModal') closeViewModal()">
+    <div style="background:white; border-radius:16px; padding:30px; max-width:600px; width:100%; max-height:90vh; overflow:auto; position:relative;">
+        <button onclick="closeViewModal()" style="position:absolute; top:15px; right:15px; background:#DC0000; color:white; border:none; border-radius:50%; width:32px; height:32px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">✕</button>
+        <h2 id="modalCrewName" style="color:#DC0000; margin:0 0 20px 0;"></h2>
+
+        <div style="margin-bottom:20px;">
+            <h4 style="color:#333; margin-bottom:8px;">📋 Health Card</h4>
+            <div id="modalHealthCard"></div>
+        </div>
+        <div>
+            <h4 style="color:#333; margin-bottom:8px;">🥩 Meat Handler Certificate</h4>
+            <div id="modalMeatHandler"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Lightbox -->
+<div id="imgLightbox" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:99999; align-items:center; justify-content:center; padding:20px;" onclick="document.getElementById('imgLightbox').style.display='none'">
+    <div style="position:relative; max-width:95vw; max-height:95vh;">
+        <img id="lightboxImg" src="" alt="" style="max-width:95vw; max-height:90vh; border-radius:10px; object-fit:contain; display:block;">
+        <p id="lightboxTitle" style="color:white; text-align:center; margin-top:10px; font-size:15px; font-weight:600;"></p>
+        <button onclick="document.getElementById('imgLightbox').style.display='none'" style="position:absolute; top:-15px; right:-15px; background:#DC0000; color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;">✕</button>
+    </div>
+</div>
+
+<script type="module" src="js/healthcards-manager.js"></script>
+<script>
+    function closeViewModal() {
+        document.getElementById('viewModal').style.display = 'none';
+    }
+    function openImgLightbox(src, title) {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightboxTitle').textContent = title;
+        document.getElementById('imgLightbox').style.display = 'flex';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.querySelector('.mobile-menu-toggle');
+        if (menuToggle) menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation(); e.preventDefault();
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+        const overlay = document.getElementById('sidebarOverlay');
+        if (overlay) overlay.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    });
+</script>
+</body>
+</html>

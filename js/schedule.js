@@ -17,6 +17,8 @@ let fullScheduleData = {};
 let scheduleStartDate = null;
 let allCrewData = []; // Store crew data globally for dropdown updates
 let approvedDates = {}; // Store approved unavailability dates globally
+let scheduleDocRef = null; // Store doc ref for saving notes
+let scheduleNotes = {}; // Store notes per day per shiftId
 
 // Auto-delete past unavailability requests and clean up crewProfiles.unavailableDates
 async function cleanupPastUnavailability() {
@@ -115,6 +117,8 @@ window.loadSchedule = async function () {
 
         scheduleStartDate = scheduleDoc.data().startDate;
         fullScheduleData = scheduleDoc.data().scheduleData;
+        scheduleDocRef = scheduleDoc.ref;
+        scheduleNotes = scheduleDoc.data().notes || {};
 
         // 🔥 Load crew
         const crewSnapshot = await getDocs(collection(db, "crewProfiles"));
@@ -364,7 +368,7 @@ window.loadSchedule = async function () {
                                             <td style="background:#fafafa;"></td>
                                         </tr>
                                         <tr class="blank-row ${shouldHideClass}">
-                                            <td colspan="7" style="padding:4px;border:1px solid #eee;"><input type="text" class="blank-input" style="width:100%;border:none;background:transparent;font-size:12px;padding:2px;font-family:inherit;"></td>
+                                            <td colspan="7" style="padding:4px;border:1px solid #eee;"><input type="text" id="note-${dayName}-${shiftId}" class="blank-input" value="${(scheduleDoc?.data()?.notes?.[dayName]?.[shiftId] || '')}" style="width:100%;border:none;background:transparent;font-size:12px;padding:2px;font-family:inherit;font-weight:bold;"></td>
                                         </tr>
                                     `;
                                 }).join('');
@@ -705,13 +709,26 @@ window.saveDayChanges = async function(day) {
 
         if (hasError) return;
 
+        // Collect notes for this day
+        const dayNotes = {};
+        document.querySelectorAll(`input[id^="note-${day}-"]`).forEach(input => {
+            // id format: note-{day}-{shiftId}
+            const shiftId = input.id.replace(`note-${day}-`, "");
+            dayNotes[shiftId] = input.value;
+        });
+
+        // Merge with existing notes for other days
+        const updatedNotes = { ...(scheduleNotes || {}), [day]: dayNotes };
+
         // Save to Firestore
         await updateDoc(docRef, {
-            scheduleData: scheduleData
+            scheduleData: scheduleData,
+            notes: updatedNotes
         });
 
         // Update the local data
         fullScheduleData = scheduleData;
+        scheduleNotes = updatedNotes;
 
         statusSpan.textContent = "✅ Saved!";
         statusSpan.style.color = "#28a745";

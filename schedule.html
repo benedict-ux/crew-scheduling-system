@@ -149,7 +149,8 @@
             /* Hide unassigned special stations in print */
             tr.hide-if-unassigned { display: none !important; }
 
-            /* Blank rows are removed from DOM before print via JS, so no CSS needed */
+            /* Blank rows: hidden if empty (removed by JS), shown if they have a note */
+            .blank-row { display: table-row !important; }
 
             /* select → plain text */
             .day-container select {
@@ -895,6 +896,7 @@
     <a href="manager.html">📊 Dashboard</a>
     <a href="schedule.html">📅 Weekly Schedule</a>
     <a href="profiles.html">👥 Crew Profiles</a>
+    <a href="healthcards-manager.html">🏥 Health Cards</a>
     <a href="history.html">📜 History</a>
     <a href="password.html">🔒 Reset Password</a>
     <hr>
@@ -1011,23 +1013,58 @@
         _printBackup = [];
 
         document.querySelectorAll('.day-container tbody').forEach(function (tbody) {
-            // Collect all rows
             const allRows = Array.from(tbody.querySelectorAll('tr'));
 
-            // Find blank rows and remove them, tracking their positions
+            // Separate blank rows into: has-note (keep) and empty (remove)
             const blankRows = allRows.filter(r => r.classList.contains('blank-row'));
+            let removedCount = 0;
             blankRows.forEach(function (row) {
-                _printBackup.push({ row: row, next: row.nextSibling, parent: row.parentNode });
-                row.parentNode.removeChild(row);
+                const input = row.querySelector('.blank-input');
+                const hasNote = input && input.value.trim() !== '';
+                if (hasNote) {
+                    // Keep row but replace input with a plain span for print
+                    const span = document.createElement('span');
+                    span.className = 'blank-input-print-text';
+                    span.textContent = input.value;
+                    span.style.cssText = 'font-size:8pt;font-weight:bold;color:#333;';
+                    input.style.display = 'none';
+                    input.parentNode.appendChild(span);
+                    _printBackup.push({ row: row, next: null, parent: null, span: span, input: input, removed: false });
+                } else {
+                    _printBackup.push({ row: row, next: row.nextSibling, parent: row.parentNode, span: null, input: null, removed: true });
+                    row.parentNode.removeChild(row);
+                    removedCount++;
+                }
             });
 
-            // Fix station cell rowspans: each station cell now spans only shift rows (no blank rows)
+            // Fix station cell rowspans based on how many blank rows were removed
             tbody.querySelectorAll('td.print-station-cell').forEach(function (cell) {
                 const currentSpan = parseInt(cell.getAttribute('rowspan') || '1');
-                const newSpan = Math.ceil(currentSpan / 2); // was shifts.length * 2, now shifts.length
-                cell.setAttribute('rowspan', newSpan);
-                cell.setAttribute('data-orig-rowspan', currentSpan); // save for restore
+                // Count how many blank rows under this station were removed
+                // Each station originally has shifts.length * 2 rowspan
+                // We removed some blank rows, so new span = currentSpan - removedBlankRowsForThisStation
+                // Simple approach: rowspan was shifts*2, kept notes rows, removed empty ones
+                // Recalculate: new rowspan = number of visible rows in this station
+                cell.setAttribute('data-orig-rowspan', currentSpan);
             });
+
+            // Recalculate rowspans by counting actual visible rows per station
+            const visibleRows = Array.from(tbody.querySelectorAll('tr'));
+            let i = 0;
+            while (i < visibleRows.length) {
+                const stationCell = visibleRows[i].querySelector('td.print-station-cell');
+                if (stationCell) {
+                    const origSpan = parseInt(stationCell.getAttribute('data-orig-rowspan') || stationCell.getAttribute('rowspan') || '1');
+                    // Count visible rows that belong to this station
+                    let count = 0;
+                    for (let j = i; j < visibleRows.length; j++) {
+                        if (j > i && visibleRows[j].querySelector('td.print-station-cell')) break;
+                        count++;
+                    }
+                    stationCell.setAttribute('rowspan', count);
+                }
+                i++;
+            }
         });
     });
 
@@ -1041,8 +1078,14 @@
         // Re-insert blank rows in reverse order so positions stay correct
         if (_printBackup) {
             for (let i = _printBackup.length - 1; i >= 0; i--) {
-                const { row, next, parent } = _printBackup[i];
-                parent.insertBefore(row, next);
+                const { row, next, parent, span, input, removed } = _printBackup[i];
+                if (removed) {
+                    parent.insertBefore(row, next);
+                } else {
+                    // Remove the print span and restore input visibility
+                    if (span) span.remove();
+                    if (input) input.style.display = '';
+                }
             }
             _printBackup = null;
         }

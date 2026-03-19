@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Health Card - Crew Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<button class="mobile-menu-toggle">
+    <span></span><span></span><span></span>
+</button>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <img src="assets/jollibee-logo.png" alt="Jollibee" class="sidebar-logo">
+        <h2>Crew Panel</h2>
+        <p class="sidebar-subtitle">EDSA Kamias Branch</p>
+    </div>
+    <a href="crew.html">📅 My Schedule</a>
+    <a href="crew.html" onclick="setTimeout(()=>{ if(window.showSection) showSection('global'); },100)">👥 Full Team Schedule</a>
+    <a href="crew.html" onclick="setTimeout(()=>{ if(window.showSection) showSection('request'); },100)">📝 Request Time Off</a>
+    <a href="healthcard.html" style="background: rgba(255,255,255,0.15);">🏥 Health Card</a>
+    <a href="password.html">🔒 Reset Password</a>
+    <hr>
+    <a href="#" onclick="logout()" style="color: #FFC700;">🚪 Logout</a>
+</div>
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="main">
+    <div class="card">
+        <h1 style="color:#DC0000;">🏥 Health Card Upload</h1>
+        <p style="color:#666; margin-bottom:25px;">Upload your health card and meat handler certificate. These will be visible to your manager.</p>
+
+        <!-- Health Card -->
+        <div style="margin-bottom:30px;">
+            <h3 style="color:#333; margin-bottom:16px;">📋 Health Card <span style="color:#DC0000;">*</span></h3>
+
+            <!-- Front -->
+            <div style="margin-bottom:18px; padding:14px; border:1px solid #e0e0e0; border-radius:10px; background:#fafafa;">
+                <p style="font-weight:600; color:#555; margin:0 0 10px 0;">Front Side</p>
+                <div id="healthCardFrontPreview" style="display:none; margin-bottom:10px;">
+                    <img id="healthCardFrontImg" src="" alt="Health Card Front" style="max-width:100%; max-height:260px; border-radius:8px; border:2px solid #e0e0e0; cursor:pointer;" onclick="openImageModal(this.src, 'Health Card - Front')">
+                    <p style="color:#10b981; font-size:13px; margin-top:6px;">✅ Uploaded</p>
+                </div>
+                <div id="healthCardFrontEmpty" style="padding:16px; background:#fff3cd; border-radius:8px; border:2px dashed #ffc107; text-align:center; margin-bottom:10px;">
+                    <p style="color:#856404; margin:0; font-size:13px;">No front side uploaded yet.</p>
+                </div>
+                <input type="file" id="healthCardFrontFile" accept="image/*" style="display:none;" onchange="previewFile('healthCardFront')">
+                <button id="healthCardFrontChooseBtn" onclick="document.getElementById('healthCardFrontFile').click()" style="background:#2563eb; margin-right:6px; font-size:13px; padding:7px 12px;">📁 Choose File</button>
+                <button id="healthCardFrontReuploadBtn" onclick="triggerReupload('healthCardFront')" style="display:none; background:#2563eb; margin-right:6px; font-size:13px; padding:7px 12px;">🔄 Re-upload</button>
+                <button id="healthCardFrontDeleteBtn" onclick="deleteFile('healthCardFront')" style="display:none; background:#DC0000; margin-right:6px; font-size:13px; padding:7px 12px;">🗑️ Delete</button>
+                <button id="healthCardFrontUploadBtn" onclick="uploadFile('healthCardFront')" style="display:none; font-size:13px; padding:7px 12px;">⬆️ Upload</button>
+                <span id="healthCardFrontFileName" style="font-size:12px; color:#666; margin-left:6px;"></span>
+            </div>
+
+            <!-- Back -->
+            <div style="padding:14px; border:1px solid #e0e0e0; border-radius:10px; background:#fafafa;">
+                <p style="font-weight:600; color:#555; margin:0 0 10px 0;">Back Side</p>
+                <div id="healthCardBackPreview" style="display:none; margin-bottom:10px;">
+                    <img id="healthCardBackImg" src="" alt="Health Card Back" style="max-width:100%; max-height:260px; border-radius:8px; border:2px solid #e0e0e0; cursor:pointer;" onclick="openImageModal(this.src, 'Health Card - Back')">
+                    <p style="color:#10b981; font-size:13px; margin-top:6px;">✅ Uploaded</p>
+                </div>
+                <div id="healthCardBackEmpty" style="padding:16px; background:#fff3cd; border-radius:8px; border:2px dashed #ffc107; text-align:center; margin-bottom:10px;">
+                    <p style="color:#856404; margin:0; font-size:13px;">No back side uploaded yet.</p>
+                </div>
+                <input type="file" id="healthCardBackFile" accept="image/*" style="display:none;" onchange="previewFile('healthCardBack')">
+                <button id="healthCardBackChooseBtn" onclick="document.getElementById('healthCardBackFile').click()" style="background:#2563eb; margin-right:6px; font-size:13px; padding:7px 12px;">📁 Choose File</button>
+                <button id="healthCardBackReuploadBtn" onclick="triggerReupload('healthCardBack')" style="display:none; background:#2563eb; margin-right:6px; font-size:13px; padding:7px 12px;">🔄 Re-upload</button>
+                <button id="healthCardBackDeleteBtn" onclick="deleteFile('healthCardBack')" style="display:none; background:#DC0000; margin-right:6px; font-size:13px; padding:7px 12px;">🗑️ Delete</button>
+                <button id="healthCardBackUploadBtn" onclick="uploadFile('healthCardBack')" style="display:none; font-size:13px; padding:7px 12px;">⬆️ Upload</button>
+                <span id="healthCardBackFileName" style="font-size:12px; color:#666; margin-left:6px;"></span>
+            </div>
+        </div>
+
+        <!-- Meat Handler -->
+        <div style="margin-bottom:30px;">
+            <h3 style="color:#333; margin-bottom:12px;">🥩 Meat Handler Certificate <span style="color:#999; font-size:13px; font-weight:normal;">(Optional)</span></h3>
+            <div id="meatHandlerPreview" style="display:none; margin-bottom:12px;">
+                <img id="meatHandlerImg" src="" alt="Meat Handler" style="max-width:100%; max-height:300px; border-radius:10px; border:2px solid #e0e0e0; cursor:pointer;" onclick="openImageModal(this.src, 'Meat Handler Certificate')">
+                <p style="color:#10b981; font-size:13px; margin-top:6px;">✅ Uploaded</p>
+            </div>
+            <div id="meatHandlerEmpty" style="padding:20px; background:#f8f9fa; border-radius:10px; border:2px dashed #ccc; text-align:center; margin-bottom:12px;">
+                <p style="color:#999; margin:0;">No meat handler certificate uploaded yet.</p>
+            </div>
+            <input type="file" id="meatHandlerFile" accept="image/*,.pdf" style="display:none;" onchange="previewFile('meatHandler')">
+            <button id="meatHandlerChooseBtn" onclick="document.getElementById('meatHandlerFile').click()" style="background:#2563eb; margin-right:8px;">📁 Choose File</button>
+            <button id="meatHandlerReuploadBtn" onclick="triggerReupload('meatHandler')" style="display:none; background:#2563eb; margin-right:8px;">🔄 Re-upload</button>
+            <button id="meatHandlerDeleteBtn" onclick="deleteFile('meatHandler')" style="display:none; background:#DC0000; margin-right:8px;">🗑️ Delete</button>
+            <button id="meatHandlerUploadBtn" onclick="uploadFile('meatHandler')" style="display:none;">⬆️ Upload</button>
+            <span id="meatHandlerFileName" style="font-size:13px; color:#666; margin-left:8px;"></span>
+        </div>
+
+        <div id="uploadStatus" style="display:none; padding:12px; border-radius:8px; margin-top:10px; font-weight:600;"></div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; padding:20px;" onclick="closeImageModal()">
+    <div style="position:relative; max-width:90vw; max-height:90vh;">
+        <img id="modalImg" src="" alt="" style="max-width:100%; max-height:85vh; border-radius:10px; object-fit:contain;">
+        <p id="modalTitle" style="color:white; text-align:center; margin-top:10px; font-size:16px; font-weight:600;"></p>
+        <button onclick="closeImageModal()" style="position:absolute; top:-15px; right:-15px; background:#DC0000; color:white; border:none; border-radius:50%; width:36px; height:36px; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+    </div>
+</div>
+
+<script type="module" src="js/healthcard.js"></script>
+<script>
+    function openImageModal(src, title) {
+        document.getElementById('modalImg').src = src;
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const menuToggle = document.querySelector('.mobile-menu-toggle');
+        if (menuToggle) menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation(); e.preventDefault();
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+        const overlay = document.getElementById('sidebarOverlay');
+        if (overlay) overlay.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    });
+</script>
+</body>
+</html>

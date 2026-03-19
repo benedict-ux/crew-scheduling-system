@@ -401,6 +401,7 @@
     <a href="manager.html">📊 Dashboard</a>
     <a href="schedule.html">📅 Weekly Schedule</a>
     <a href="profiles.html">👥 Crew Profiles</a>
+    <a href="healthcards-manager.html">🏥 Health Cards</a>
     <a href="history.html">📜 History</a>
     <a href="password.html">🔒 Reset Password</a>
     <hr>
@@ -483,15 +484,35 @@
         document.querySelectorAll('.day-schedule tbody').forEach(function (tbody) {
             const blankRows = Array.from(tbody.querySelectorAll('tr.hist-blank-row'));
             blankRows.forEach(function (row) {
-                _histPrintBackup.push({ row: row, next: row.nextSibling, parent: row.parentNode });
-                row.parentNode.removeChild(row);
+                const span = row.querySelector('span');
+                const hasNote = span && span.textContent.trim() !== '';
+                if (hasNote) {
+                    // Keep row — just mark it for restore tracking
+                    _histPrintBackup.push({ row: row, next: null, parent: null, removed: false });
+                } else {
+                    _histPrintBackup.push({ row: row, next: row.nextSibling, parent: row.parentNode, removed: true });
+                    row.parentNode.removeChild(row);
+                }
             });
+
+            // Recalculate rowspans by counting actual visible rows per station
             tbody.querySelectorAll('td.hist-station-cell').forEach(function (cell) {
-                const currentSpan = parseInt(cell.getAttribute('rowspan') || '1');
-                const newSpan = Math.ceil(currentSpan / 2);
-                cell.setAttribute('rowspan', newSpan);
-                cell.setAttribute('data-orig-rowspan', currentSpan);
+                cell.setAttribute('data-orig-rowspan', cell.getAttribute('rowspan') || '1');
             });
+            const visibleRows = Array.from(tbody.querySelectorAll('tr'));
+            let i = 0;
+            while (i < visibleRows.length) {
+                const stationCell = visibleRows[i].querySelector('td.hist-station-cell');
+                if (stationCell) {
+                    let count = 0;
+                    for (let j = i; j < visibleRows.length; j++) {
+                        if (j > i && visibleRows[j].querySelector('td.hist-station-cell')) break;
+                        count++;
+                    }
+                    stationCell.setAttribute('rowspan', count);
+                }
+                i++;
+            }
         });
     });
 
@@ -502,8 +523,10 @@
         });
         if (_histPrintBackup) {
             for (let i = _histPrintBackup.length - 1; i >= 0; i--) {
-                const { row, next, parent } = _histPrintBackup[i];
-                parent.insertBefore(row, next);
+                const { row, next, parent, removed } = _histPrintBackup[i];
+                if (removed) {
+                    parent.insertBefore(row, next);
+                }
             }
             _histPrintBackup = null;
         }

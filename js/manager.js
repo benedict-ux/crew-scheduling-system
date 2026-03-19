@@ -476,6 +476,18 @@ window.updateNickname = async function(crewId, nickname) {
     }
 };
 
+window.updateContactNumber = async function(crewId, number) {
+    try {
+        await updateDoc(doc(db, "crewProfiles", crewId), {
+            contactNumber: number || ""
+        });
+        console.log("Contact number updated!");
+    } catch (e) {
+        console.error("Error updating contact number:", e);
+        alert("Update failed.");
+    }
+};
+
 window.updateCrewEmail = async function(crewId, email) {
     if (!email || !email.includes('@')) {
         alert("Please enter a valid email address");
@@ -701,6 +713,13 @@ window.openAddCrewModal = function() {
                     </div>
                     
                     <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px;">📞 Contact Number:</label>
+                        <input type="tel" id="newCrewContact" 
+                            placeholder="e.g. 09XX-XXX-XXXX (optional)"
+                            style="width: 100%; padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
                         <label style="font-weight: bold; display: block; margin-bottom: 8px;">Email: <span style="color: red;">*</span></label>
                         <input type="email" id="newCrewEmail" required 
                             placeholder="crew@example.com"
@@ -774,6 +793,7 @@ window.saveNewCrew = async function() {
     const password = document.getElementById('newCrewPassword').value;
     const roleType = document.getElementById('newCrewRole').value;
     const station = document.getElementById('newCrewStation').value;
+    const contactNumber = document.getElementById('newCrewContact')?.value.trim() || '';
     
     if (!name || !email || !password) {
         alert("Please fill in all required fields (Name, Email, Password)");
@@ -807,6 +827,7 @@ window.saveNewCrew = async function() {
             email: email,
             uid: userData.localId,
             roleType: roleType,
+            contactNumber: contactNumber,
             topPriorityStation: station || "",
             secondaryStations: [],
             attendancePriority: 3,
@@ -954,6 +975,7 @@ window.loadCrew = async function() {
                     <p style="margin: 5px 0; color: #666; font-size: 14px;">
                         <strong>Station:</strong> ${crew.topPriorityStation || "N/A"}
                     </p>
+                    ${crew.contactNumber ? `<p style="margin: 5px 0; color: #28a745; font-size: 14px;">📞 ${crew.contactNumber}</p>` : ''}
                     <p style="margin: 10px 0 0 0; color: #007bff; font-size: 13px; font-weight: bold;">
                         Click to edit →
                     </p>
@@ -1145,6 +1167,15 @@ window.openCrewModal = async function(crewId) {
                             placeholder="Enter nickname (optional)"
                             style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
                         <small style="color: #666;">If set, this nickname will appear in the schedule instead of the full name.</small>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: bold;">📞 Contact Number:</label><br/>
+                        <input type="tel" value="${crew.contactNumber || ''}" 
+                            onchange="updateContactNumber('${crewId}', this.value)" 
+                            placeholder="e.g. 09XX-XXX-XXXX"
+                            style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px;">
+                        <small style="color: #666;">For manager reference only.</small>
                     </div>
                     
                     <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;">

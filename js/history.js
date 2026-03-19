@@ -146,6 +146,7 @@ window.viewScheduleModal = async function(scheduleId) {
         const scheduleEndDate = scheduleData.endDate;
         const scheduleByDay = scheduleData.scheduleData;
         const scheduleNotes = scheduleData.notes || {};
+        const midAssignments = scheduleData.midAssignments || {};
         
         // Station order (matches schedule.js)
         const stationOrder = [
@@ -252,9 +253,9 @@ window.viewScheduleModal = async function(scheduleId) {
             });
 
             // Add placeholder MID stations if missing
-            if (!shiftsByStation["MID"]) shiftsByStation["MID"] = [{ station:"MID", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
-            if (!shiftsByStation["MID-DINING"]) shiftsByStation["MID-DINING"] = [{ station:"MID-DINING", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
-            if (!shiftsByStation["MID-KITCHEN"]) shiftsByStation["MID-KITCHEN"] = [{ station:"MID-KITCHEN", crewName:"Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
+            if (!shiftsByStation["MID"]) shiftsByStation["MID"] = [{ station:"MID", crewName: midAssignments[day]?.["MID"] || "Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
+            if (!shiftsByStation["MID-DINING"]) shiftsByStation["MID-DINING"] = [{ station:"MID-DINING", crewName: midAssignments[day]?.["MID-DINING"] || "Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
+            if (!shiftsByStation["MID-KITCHEN"]) shiftsByStation["MID-KITCHEN"] = [{ station:"MID-KITCHEN", crewName: midAssignments[day]?.["MID-KITCHEN"] || "Unassigned", startTime:"12:00PM", endTime:"8:00PM", _isMidPlaceholder:true }];
 
             // Build table rows
             const hideWhenUnassigned = ["PC", "MID", "MID-DINING", "MID-KITCHEN"];
@@ -342,15 +343,17 @@ window.viewScheduleModal = async function(scheduleId) {
                         <table>
                             <tr>
                                 <td class="bold-cell" style="width:55%;">ACKNOWLEDGE OF YOUR SCHED</td>
-                                <td rowspan="6" class="yellow-cell" style="width:45%;vertical-align:middle;">BEE HAPPY! :)</td>
+                                <td rowspan="6" class="yellow-cell" style="width:45%;vertical-align:middle;text-align:center;">
+                                    BEE HAPPY! :)<br><br>
+                                    <span class="bold-cell red-text" style="display:block;font-size:7.5pt;">PLEASE LONG BREAK IF SLACK</span><br>
+                                    <span class="bold-cell" style="display:block;font-size:7pt;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</span>
+                                </td>
                             </tr>
                             <tr><td class="bold-cell red-text">ASK YOUR TL IF THERE'S CORRECTION</td></tr>
                             <tr><td class="bold-cell">DON'T BE LATE</td></tr>
                             <tr><td class="bold-cell">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</td></tr>
                             <tr><td class="bold-cell">PLEASE CALL STORE OR DROP MESSAGE IN OUR GC</td></tr>
                             <tr><td class="bold-cell">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</td></tr>
-                            <tr><td class="bold-cell red-text" colspan="2">PLEASE LONG BREAK IF SLACK</td></tr>
-                            <tr><td colspan="2" class="bold-cell">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</td></tr>
                         </table>
                     </div>
 
@@ -382,25 +385,21 @@ window.printScheduleModal = function() {
     const scheduleContent = document.getElementById('scheduleModalContent');
     if (!scheduleContent) return;
 
-    // Create print container with cloned content
-    const printContainer = document.createElement('div');
-    printContainer.id = 'printContainer';
-    printContainer.innerHTML = scheduleContent.innerHTML;
-    printContainer.style.display = 'none';
-    document.body.appendChild(printContainer);
+    // Collect all print CSS from the page's <style> tags
+    let printStyles = '';
+    document.querySelectorAll('style').forEach(s => { printStyles += s.innerHTML; });
 
-    // Process blank rows in the cloned content:
-    // keep rows with notes, remove empty ones, fix rowspans
-    printContainer.querySelectorAll('.day-schedule tbody').forEach(function (tbody) {
+    // Clone content and process blank rows
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = scheduleContent.innerHTML;
+
+    tempDiv.querySelectorAll('.day-schedule tbody').forEach(function (tbody) {
         const blankRows = Array.from(tbody.querySelectorAll('tr.hist-blank-row'));
         blankRows.forEach(function (row) {
             const span = row.querySelector('span');
             const hasNote = span && span.textContent.trim() !== '';
-            if (!hasNote) {
-                row.parentNode.removeChild(row);
-            }
+            if (!hasNote) row.parentNode.removeChild(row);
         });
-
         // Recalculate rowspans
         const visibleRows = Array.from(tbody.querySelectorAll('tr'));
         let i = 0;
@@ -418,19 +417,63 @@ window.printScheduleModal = function() {
         }
     });
 
-    document.body.classList.add('printing');
+    // Build iframe with full print HTML
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(iframe);
 
-    const modal = document.getElementById('scheduleModal');
-    if (modal) modal.style.display = 'none';
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(`<!DOCTYPE html><html><head>
+        <meta charset="utf-8">
+        <style>
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
+            @page { size: 8.5in 11in portrait; margin: 8mm; }
+            body { margin: 0; padding: 0; background: white; font-family: Arial, sans-serif; }
+            .screen-day-header { display: none !important; }
 
+            /* Each day fits exactly 1 page */
+            .day-schedule {
+                page-break-after: always;
+                page-break-inside: avoid;
+                padding: 0; margin: 0; background: white;
+                height: 277mm;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                zoom: 0.88;
+            }
+            .day-schedule:last-child { page-break-after: avoid; }
+
+            .hist-print-header { display: block !important; width: 100%; border: 2px solid #DC0000; margin-bottom: 3px; flex-shrink: 0; }
+            .hist-print-header-date { background: white; color: #DC0000; text-align: center; font-size: 13pt; font-weight: 900; padding: 4px 0 2px 0; letter-spacing: 1px; border-bottom: 2px solid #DC0000; }
+            .hist-print-header-branch { background: white; color: #DC0000; text-align: center; font-size: 9pt; font-weight: 600; padding: 2px 0; }
+
+            .hist-table-wrap { flex: 1; overflow: hidden; }
+            table.hist-sched-table { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: fixed; height: 100%; }
+            table.hist-sched-table th { background: white !important; color: #DC0000 !important; border: 1.5px solid #000; padding: 3px 2px; font-size: 7.5pt; font-weight: 700; text-align: center; line-height: 1.1; }
+            table.hist-sched-table td { border: 1px solid #000; padding: 4px 2px; font-size: 8pt; line-height: 1.2; vertical-align: middle; text-align: center; }
+            .hist-station-cell { font-weight: 700 !important; color: #DC0000 !important; text-align: left !important; background: #f8f9fa !important; vertical-align: middle !important; font-size: 8pt !important; }
+            .hist-name-cell { font-weight: 700 !important; text-align: center !important; }
+            tr.hide-if-unassigned { display: none !important; }
+            .hist-blank-row td { padding: 2px 3px !important; border: 1px solid #eee !important; }
+            .hist-blank-row span { font-weight: bold; font-size: 7.5pt; display: block; text-align: left; }
+
+            .hist-print-footer { display: block !important; margin-top: 3px; width: 100%; flex-shrink: 0; }
+            .hist-print-footer table { width: 100%; border-collapse: collapse; font-size: 7.5pt; }
+            .hist-print-footer td { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; font-size: 7.5pt; line-height: 1.3; }
+            .hist-print-footer .yellow-cell { background: #FFFF00 !important; font-weight: 700; text-align: center; font-size: 8pt; vertical-align: middle !important; }
+            .hist-print-footer .bold-cell { font-weight: 700; }
+            .hist-print-footer .red-text { color: #DC0000; font-weight: 700; }
+        </style>
+    </head><body>${tempDiv.innerHTML}</body></html>`);
+    iframeDoc.close();
+
+    iframe.contentWindow.focus();
     setTimeout(() => {
-        window.print();
-        setTimeout(() => {
-            document.body.classList.remove('printing');
-            if (printContainer) printContainer.remove();
-            if (modal) modal.remove();
-        }, 100);
-    }, 100);
+        iframe.contentWindow.print();
+        setTimeout(() => iframe.remove(), 1000);
+    }, 300);
 };
 
 // Delete schedule permanently

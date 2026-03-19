@@ -19,6 +19,7 @@ let allCrewData = []; // Store crew data globally for dropdown updates
 let approvedDates = {}; // Store approved unavailability dates globally
 let scheduleDocRef = null; // Store doc ref for saving notes
 let scheduleNotes = {}; // Store notes per day per shiftId
+let scheduleMidAssignments = {}; // Store MID/MID-DINING/MID-KITCHEN assignments per day
 
 // Auto-delete past unavailability requests and clean up crewProfiles.unavailableDates
 async function cleanupPastUnavailability() {
@@ -119,6 +120,7 @@ window.loadSchedule = async function () {
         fullScheduleData = scheduleDoc.data().scheduleData;
         scheduleDocRef = scheduleDoc.ref;
         scheduleNotes = scheduleDoc.data().notes || {};
+        scheduleMidAssignments = scheduleDoc.data().midAssignments || {};
 
         // 🔥 Load crew
         const crewSnapshot = await getDocs(collection(db, "crewProfiles"));
@@ -237,7 +239,7 @@ window.loadSchedule = async function () {
                     type: "MID",
                     startTime: "12:00PM",
                     endTime: "8:00PM",
-                    crewName: "Unassigned",
+                    crewName: scheduleMidAssignments[dayName]?.["MID"] || "Unassigned",
                     originalIndex: -1
                 }];
             }
@@ -249,7 +251,7 @@ window.loadSchedule = async function () {
                     type: "MID",
                     startTime: "12:00PM",
                     endTime: "8:00PM",
-                    crewName: "Unassigned",
+                    crewName: scheduleMidAssignments[dayName]?.["MID-DINING"] || "Unassigned",
                     originalIndex: -2
                 }];
             }
@@ -261,7 +263,7 @@ window.loadSchedule = async function () {
                     type: "MID",
                     startTime: "12:00PM",
                     endTime: "8:00PM",
-                    crewName: "Unassigned",
+                    crewName: scheduleMidAssignments[dayName]?.["MID-KITCHEN"] || "Unassigned",
                     originalIndex: -3
                 }];
             }
@@ -331,7 +333,7 @@ window.loadSchedule = async function () {
                                         console.log(`✅ Filtered ${crewBeforeFilter - dropdownCrew.length} crew member(s) for ${formattedDate}`);
                                     }
                                     
-                                    const shiftId = shift.originalIndex === -1 ? 
+                                    const shiftId = shift.originalIndex < 0 ? 
                                         `mid-${dayName}-${stationName}` : 
                                         `shift-${dayName}-${shift.originalIndex}`;
                                     
@@ -382,19 +384,17 @@ window.loadSchedule = async function () {
                         <table>
                             <tr>
                                 <td class="bold-cell" style="width:55%;">ACKNOWLEDGE OF YOUR SCHED</td>
-                                <td rowspan="6" class="yellow-cell" style="width:45%; vertical-align:middle;">BEE HAPPY! :)</td>
+                                <td rowspan="8" class="yellow-cell" style="width:45%; vertical-align:middle; text-align:center;">
+                                    BEE HAPPY! :)<br><br>
+                                    <span class="bold-cell red-text" style="display:block;font-size:8pt;">PLEASE LONG BREAK IF SLACK</span><br>
+                                    <span class="bold-cell" style="display:block;font-size:7.5pt;">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</span>
+                                </td>
                             </tr>
                             <tr><td class="bold-cell red-text">ASK YOUR TL IF THERE'S CORRECTION</td></tr>
                             <tr><td class="bold-cell">DON'T BE LATE</td></tr>
                             <tr><td class="bold-cell">EXCESSIVE LATE WILL DO IR AND REPORT TO JAFRA</td></tr>
                             <tr><td class="bold-cell">PLEASE CALL STORE OR DROP MESSAGE IN OUR GC</td></tr>
                             <tr><td class="bold-cell">FOR NO CALL, MUST PRESENT A MEDICAL CERTIFICATE</td></tr>
-                            <tr>
-                                <td class="bold-cell red-text" colspan="2">PLEASE LONG BREAK IF SLACK</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="bold-cell">REQUEST MUST BE DONE 3 DAYS PRIOR THE DAY OF THE REQUEST</td>
-                            </tr>
                         </table>
                     </div>
                     
@@ -638,6 +638,20 @@ window.updateDropdownsForDay = function(day) {
         }
         
         selectElement.innerHTML = optionsHtml;
+
+        // Update hide-if-unassigned class on the row based on current value
+        const hideWhenUnassigned = ["PC", "MID", "MID-DINING", "MID-KITCHEN"];
+        if (hideWhenUnassigned.includes(assignment.station)) {
+            const row = selectElement.closest('tr');
+            const blankRow = row ? row.nextElementSibling : null;
+            if (currentValue === "Unassigned") {
+                if (row) row.classList.add('hide-if-unassigned');
+                if (blankRow && blankRow.classList.contains('blank-row')) blankRow.classList.add('hide-if-unassigned');
+            } else {
+                if (row) row.classList.remove('hide-if-unassigned');
+                if (blankRow && blankRow.classList.contains('blank-row')) blankRow.classList.remove('hide-if-unassigned');
+            }
+        }
     });
 };
 
@@ -717,18 +731,28 @@ window.saveDayChanges = async function(day) {
             dayNotes[shiftId] = input.value;
         });
 
-        // Merge with existing notes for other days
+        // Collect MID assignments for this day
+        const dayMid = {};
+        ["MID", "MID-DINING", "MID-KITCHEN"].forEach(station => {
+            const el = document.getElementById(`mid-${day}-${station}`);
+            if (el) dayMid[station] = el.value;
+        });
+
+        // Merge with existing notes and MID assignments for other days
         const updatedNotes = { ...(scheduleNotes || {}), [day]: dayNotes };
+        const updatedMid = { ...(scheduleMidAssignments || {}), [day]: dayMid };
 
         // Save to Firestore
         await updateDoc(docRef, {
             scheduleData: scheduleData,
-            notes: updatedNotes
+            notes: updatedNotes,
+            midAssignments: updatedMid
         });
 
         // Update the local data
         fullScheduleData = scheduleData;
         scheduleNotes = updatedNotes;
+        scheduleMidAssignments = updatedMid;
 
         statusSpan.textContent = "✅ Saved!";
         statusSpan.style.color = "#28a745";

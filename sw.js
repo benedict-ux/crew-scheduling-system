@@ -1,7 +1,7 @@
 // Service Worker for Jollibee Crew Scheduling System
 // Caches static files for faster mobile loading
 
-const CACHE_NAME = 'jollibee-crew-v18.1';
+const CACHE_NAME = 'jollibee-crew-v18.2';
 const urlsToCache = [
   '/',
   '/login.html',
@@ -13,6 +13,7 @@ const urlsToCache = [
   '/password.html',
   '/healthcard.html',
   '/healthcards-manager.html',
+  '/manifest.json',
   '/css/styles.css',
   '/js/auth.js',
   '/js/manager.js',

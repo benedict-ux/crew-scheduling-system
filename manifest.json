@@ -1,22 +1,25 @@
 {
-  "name": "Jollibee Crew Scheduling System",
-  "short_name": "Jollibee Crew",
+  "name": "Jollibee Crew Scheduling",
+  "short_name": "CrewFlow",
   "description": "EDSA Kamias Branch - Crew Scheduling and Management System",
   "start_url": "/login.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#DC0000",
   "theme_color": "#DC0000",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23DC0000'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🍔</text></svg>",
+      "src": "assets/jollibee-logo.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23DC0000'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>🍔</text></svg>",
+      "src": "assets/jollibee-logo.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "categories": ["business", "productivity"],

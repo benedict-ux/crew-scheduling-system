@@ -110,6 +110,11 @@ window.login = async function() {
     } catch (error) {
         // Hide loading spinner
         showLoginLoading(false);
+
+        // Clear fields on any error
+        document.getElementById("email").value = "";
+        document.getElementById("password").value = "";
+        document.getElementById("email").focus();
         
         // Better error messages for mobile users
         if (error.message === 'Connection timeout') {

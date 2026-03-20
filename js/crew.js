@@ -199,11 +199,14 @@ async function loadMyPersonalSchedule(crewName) {
     let scheduleData = null;
     let scheduleStartDate = null;
     let scheduleEndDate = null;
+    let midAssignments = {};
     for (const doc of snap.docs) {
         if (!doc.data().archived) {
             scheduleData = doc.data().scheduleData;
             scheduleStartDate = doc.data().startDate;
             scheduleEndDate = doc.data().endDate;
+            midAssignments = doc.data().midAssignments || {};
+            console.log("midAssignments loaded:", JSON.stringify(midAssignments));
             break;
         }
     }
@@ -275,6 +278,26 @@ async function loadMyPersonalSchedule(crewName) {
             }
             return matches;
         });
+
+        // Also check MID/MID-DINING/MID-KITCHEN assignments
+        const midStations = ["MID", "MID-DINING", "MID-KITCHEN"];
+        const dayMid = midAssignments[day] || {};
+        console.log(`MID check for ${day}:`, JSON.stringify(dayMid));
+        midStations.forEach(station => {
+            const assignedName = dayMid[station] || "";
+            if (!assignedName || assignedName === "Unassigned") return;
+            const nameLower = assignedName.toLowerCase();
+            const isMe = assignedName === firstName ||
+                         assignedName === lastName ||
+                         assignedName === crewName ||
+                         (currentCrewNickname && assignedName === currentCrewNickname) ||
+                         nameLower.includes(firstName.toLowerCase()) ||
+                         nameLower.includes(lastName.toLowerCase()) ||
+                         (currentCrewNickname && nameLower.includes(currentCrewNickname.toLowerCase()));
+            if (isMe) {
+                myShifts.push({ station, crewName: assignedName, startTime: "12:00PM", endTime: "8:00PM", type: "MID" });
+            }
+        });
         
         if (myShifts.length > 0) {
             found = true;
@@ -329,6 +352,7 @@ async function loadGlobalSchedule() {
 
         const scheduleData = scheduleDoc.scheduleData;
         const scheduleEndDate = scheduleDoc.endDate;
+        const midAssignments = scheduleDoc.midAssignments || {};
         const allDayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
         // Build actual date range
@@ -346,7 +370,7 @@ async function loadGlobalSchedule() {
             const day = allDayNames[dayObj.getDay()];
 
             // Group shifts by station
-            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "DINING", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
+            const stationOrder = ["SC/AGGRE", "ASSEMBLER", "CTR", "MID", "DINING", "MID-DINING", "MID-KITCHEN", "FRY", "PANTRY", "B-UP", "GRILL", "STOCKMAN", "DOORMAN", "PC"];
             const shiftsByStation = {};
             
             scheduleData[day].forEach((shift) => {
@@ -354,6 +378,17 @@ async function loadGlobalSchedule() {
                     shiftsByStation[shift.station] = [];
                 }
                 shiftsByStation[shift.station].push(shift);
+            });
+
+            // Inject MID/MID-DINING/MID-KITCHEN from midAssignments
+            const dayMid = midAssignments[day] || {};
+            ["MID", "MID-DINING", "MID-KITCHEN"].forEach(station => {
+                const assignedName = dayMid[station] || "Unassigned";
+                if (!shiftsByStation[station]) {
+                    if (assignedName !== "Unassigned") {
+                        shiftsByStation[station] = [{ station, crewName: assignedName, startTime: "12:00PM", endTime: "8:00PM", type: "MID" }];
+                    }
+                }
             });
             
             // Sort shifts within each station: OPENING first, then CLOSING

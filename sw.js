@@ -1,7 +1,7 @@
 // Service Worker for Jollibee Crew Scheduling System
 // Caches static files for faster mobile loading
 
-const CACHE_NAME = 'jollibee-crew-v18.2';
+const CACHE_NAME = 'jollibee-crew-v19.1';
 const urlsToCache = [
   '/',
   '/login.html',
@@ -30,6 +30,7 @@ const urlsToCache = [
 // Install event - cache files
 self.addEventListener('install', function(event) {
   console.log('Service Worker: Installing...');
+  self.skipWaiting(); // Activate immediately
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
@@ -78,15 +79,18 @@ self.addEventListener('fetch', function(event) {
 self.addEventListener('activate', function(event) {
   console.log('Service Worker: Activating...');
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Deleting old cache', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+          cacheNames.map(function(cacheName) {
+            if (cacheName !== CACHE_NAME) {
+              console.log('Service Worker: Deleting old cache', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+    ])
   );
 });

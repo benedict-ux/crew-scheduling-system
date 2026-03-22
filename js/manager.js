@@ -2549,6 +2549,267 @@ window.loadRequests = async function() {
     }
 };
 
+// ===============================
+// AUTO-REASSIGN: When a request is approved and a published schedule already covers that date,
+// remove the approved crew from their shift(s) on that day and re-assign using priority logic.
+// ===============================
+async function reassignCrewInPublishedSchedule(approvedCrewName, datesToAdd) {
+    try {
+        // Load all crew profiles for re-assignment logic
+        const crewSnapshot = await getDocs(collection(db, "crewProfiles"));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const allCrew = crewSnapshot.docs.map(docSnap => {
+            const data = docSnap.data();
+            const unavailableDates = (data.unavailableDates || []).filter(dateStr => {
+                const [yr, mo, dy] = dateStr.split("-").map(Number);
+                return new Date(yr, mo - 1, dy) >= today;
+            });
+            return {
+                ...data,
+                unavailableDates,
+                topPriorityStation: data.topPriorityStation || "",
+                secondaryStations: data.secondaryStations || [],
+                schoolStartTime: data.schoolStartTime || {},
+                schoolEndTime: data.schoolEndTime || {},
+                restDays: data.restDays || {},
+                noClass: data.noClass || {},
+                noClassPreference: data.noClassPreference || {},
+                shiftPreference: data.shiftPreference || "flexible",
+                attendancePriority: data.attendancePriority || 3,
+                seniorityRank: data.seniorityRank || 999
+            };
+        });
+
+        // Find the approved crew's profile to get their display name (nickname or name)
+        const approvedCrewProfile = allCrew.find(c => c.name === approvedCrewName);
+        const approvedDisplayName = approvedCrewProfile ? (approvedCrewProfile.nickname || approvedCrewProfile.name) : approvedCrewName;
+
+        // Find published schedules that overlap with any of the approved dates
+        const publishedQ = query(collection(db, "weeklySchedules"), where("status", "==", "published"));
+        const publishedSnap = await getDocs(publishedQ);
+        if (publishedSnap.empty) return;
+
+        const allDayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+        for (const schedDoc of publishedSnap.docs) {
+            const schedData = schedDoc.data();
+            if (schedData.archived) continue;
+
+            const schedStart = new Date(schedData.startDate);
+            const schedEnd = schedData.endDate ? new Date(schedData.endDate) : new Date(schedStart.getTime() + 6 * 24 * 60 * 60 * 1000);
+
+            let scheduleChanged = false;
+            const updatedScheduleData = { ...schedData.scheduleData };
+
+            for (const dateStr of datesToAdd) {
+                const dateObj = new Date(dateStr);
+                // Check if this date falls within the published schedule range
+                if (dateObj < schedStart || dateObj > schedEnd) continue;
+
+                const dayName = allDayNames[dateObj.getDay()];
+                const dayShifts = updatedScheduleData[dayName];
+                if (!dayShifts) continue;
+
+                // Find shifts assigned to the approved crew on this day
+                const affectedShiftIndices = [];
+                dayShifts.forEach((shift, idx) => {
+                    if (shift.crewName === approvedDisplayName || shift.crewName === approvedCrewName) {
+                        affectedShiftIndices.push(idx);
+                    }
+                });
+
+                if (affectedShiftIndices.length === 0) continue;
+
+                // Build list of crew already assigned on this day (excluding the approved crew)
+                const alreadyAssignedNames = new Set(
+                    dayShifts
+                        .filter((s, idx) => !affectedShiftIndices.includes(idx) && s.crewName !== "Unassigned")
+                        .map(s => s.crewName)
+                );
+
+                // Build available crew pool for this day (not on rest day, not unavailable, not already assigned)
+                // Also exclude the approved crew since they are now unavailable
+                let availablePool = allCrew.filter(crew => {
+                    if (crew.name === approvedCrewName) return false; // approved crew is now off
+                    if (crew.unavailableDates.includes(dateStr)) return false;
+                    if (crew.restDays?.[dayName] === true) return false;
+                    const displayName = crew.nickname || crew.name;
+                    if (alreadyAssignedNames.has(displayName) || alreadyAssignedNames.has(crew.name)) return false;
+
+                    // School schedule: block if school ends at 18:00 or later
+                    const noClass = crew.noClass?.[dayName] === true;
+                    if (!noClass) {
+                        const schoolEndTime = crew.schoolEndTime?.[dayName];
+                        if (schoolEndTime && schoolEndTime !== "") {
+                            const endHour = parseInt(schoolEndTime.split(':')[0]);
+                            if (endHour >= 18) return false;
+                        }
+                        const schoolStartTime = crew.schoolStartTime?.[dayName];
+                        if (schoolStartTime && schoolStartTime !== "" && (!schoolEndTime || schoolEndTime === "")) return false;
+                    }
+                    return true;
+                });
+
+                // Check closing-to-opening restriction for students
+                const studentsBlockedFromOpening = new Set();
+                const dayIndex = allDayNames.indexOf(dayName);
+                if (dayIndex > 0) {
+                    const prevDayName = allDayNames[dayIndex - 1];
+                    const prevDayShifts = updatedScheduleData[prevDayName] || [];
+                    availablePool.forEach(crew => {
+                        if (crew.roleType !== "student") return;
+                        const displayName = crew.nickname || crew.name;
+                        const hadClosing = prevDayShifts.some(s =>
+                            (s.crewName === displayName || s.crewName === crew.name) &&
+                            (s.type || "").toLowerCase() === "closing"
+                        );
+                        if (hadClosing && crew.canWorkOpeningNextDay?.[dayName] !== true) {
+                            studentsBlockedFromOpening.add(crew.name);
+                        }
+                    });
+                }
+
+                // Helper: can crew work this shift based on school schedule
+                const canWorkShift = (crew, shift) => {
+                    const noClass = crew.noClass?.[dayName] === true;
+                    const shiftType = (shift.type || "").toLowerCase();
+                    if (noClass) {
+                        const noClassPref = (crew.noClassPreference?.[dayName] || "any").toLowerCase();
+                        if (noClassPref === "opening" && shiftType !== "opening") return false;
+                        if (noClassPref === "closing" && shiftType !== "closing") return false;
+                        return true;
+                    }
+                    const startMatch = shift.startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                    const endMatch = shift.endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                    if (!startMatch || !endMatch) return true;
+                    let eH = parseInt(endMatch[1]);
+                    const eP = endMatch[3].toUpperCase();
+                    if (eP === 'PM' && eH < 12) eH += 12;
+                    if (eP === 'AM' && eH === 12) eH = 0;
+                    if (eH === 0 && eP === 'AM') eH = 24;
+                    if (shiftType === "opening") {
+                        const schoolStart = crew.schoolStartTime?.[dayName];
+                        if (schoolStart && schoolStart !== "") {
+                            const [ssH, ssM] = schoolStart.split(':').map(Number);
+                            let sH2 = parseInt(endMatch[1]);
+                            const sP2 = endMatch[3].toUpperCase();
+                            if (sP2 === 'PM' && sH2 < 12) sH2 += 12;
+                            if (sP2 === 'AM' && sH2 === 12) sH2 = 0;
+                            const sM2 = parseInt(endMatch[2]);
+                            if (sH2 > ssH || (sH2 === ssH && sM2 > ssM)) return false;
+                        }
+                    }
+                    return true;
+                };
+
+                // Helper: preference check
+                const matchesPref = (crew, shiftType, strict = true) => {
+                    if (shiftType === "opening" && studentsBlockedFromOpening.has(crew.name)) return false;
+                    const pref = (crew.shiftPreference || "flexible").toLowerCase();
+                    if (pref === "flexible") return true;
+                    if (strict) {
+                        if (pref === "opening" && shiftType === "opening") return true;
+                        if (pref === "closing" && shiftType === "closing") return true;
+                        return false;
+                    }
+                    // Respect strict preferences even in non-strict mode
+                    if (pref === "opening" && shiftType === "closing") return false;
+                    if (pref === "closing" && shiftType === "opening") return false;
+                    return true;
+                };
+
+                // Re-assign each affected shift using priority steps
+                for (const shiftIdx of affectedShiftIndices) {
+                    const shift = dayShifts[shiftIdx];
+                    const shiftType = (shift.type || "").toLowerCase();
+
+                    // Mark this shift as unassigned first
+                    updatedScheduleData[dayName][shiftIdx] = { ...shift, crewName: "Unassigned" };
+
+                    let replacement = null;
+
+                    // Step 1: Top priority + matching preference
+                    if (!replacement) {
+                        const candidates = availablePool.filter(c =>
+                            c.topPriorityStation === shift.station && canWorkShift(c, shift) && matchesPref(c, shiftType, true)
+                        ).sort((a, b) => (b.attendancePriority || 3) - (a.attendancePriority || 3) || (a.seniorityRank || 999) - (b.seniorityRank || 999));
+                        if (candidates.length > 0) replacement = candidates[0];
+                    }
+
+                    // Step 2: High attendance (4-5) + secondary + matching preference
+                    if (!replacement) {
+                        const candidates = availablePool.filter(c =>
+                            (c.attendancePriority || 3) >= 4 &&
+                            (c.secondaryStations || []).includes(shift.station) &&
+                            canWorkShift(c, shift) && matchesPref(c, shiftType, true)
+                        ).sort((a, b) => (b.attendancePriority || 3) - (a.attendancePriority || 3));
+                        if (candidates.length > 0) replacement = candidates[0];
+                    }
+
+                    // Step 3: Top priority, respect strict preferences
+                    if (!replacement) {
+                        const candidates = availablePool.filter(c =>
+                            c.topPriorityStation === shift.station && canWorkShift(c, shift) && matchesPref(c, shiftType, false)
+                        ).sort((a, b) => (b.attendancePriority || 3) - (a.attendancePriority || 3));
+                        if (candidates.length > 0) replacement = candidates[0];
+                    }
+
+                    // Step 4: Secondary + matching preference
+                    if (!replacement) {
+                        const candidates = availablePool.filter(c =>
+                            (c.secondaryStations || []).includes(shift.station) &&
+                            canWorkShift(c, shift) && matchesPref(c, shiftType, true)
+                        ).sort((a, b) => (b.attendancePriority || 3) - (a.attendancePriority || 3));
+                        if (candidates.length > 0) replacement = candidates[0];
+                    }
+
+                    // Step 5: Secondary, respect strict preferences
+                    if (!replacement) {
+                        const candidates = availablePool.filter(c =>
+                            (c.secondaryStations || []).includes(shift.station) &&
+                            canWorkShift(c, shift) && matchesPref(c, shiftType, false)
+                        ).sort((a, b) => (b.attendancePriority || 3) - (a.attendancePriority || 3));
+                        if (candidates.length > 0) replacement = candidates[0];
+                    }
+
+                    // Step 6: Any qualified crew + preference
+                    if (!replacement) {
+                        const candidates = availablePool.filter(c => {
+                            const hasStation = c.topPriorityStation === shift.station || (c.secondaryStations || []).includes(shift.station);
+                            return hasStation && canWorkShift(c, shift) && matchesPref(c, shiftType, true);
+                        }).sort((a, b) => (a.seniorityRank || 999) - (b.seniorityRank || 999) || (b.attendancePriority || 3) - (a.attendancePriority || 3));
+                        if (candidates.length > 0) replacement = candidates[0];
+                    }
+
+                    if (replacement) {
+                        const replacementDisplayName = replacement.nickname || replacement.name;
+                        updatedScheduleData[dayName][shiftIdx] = { ...shift, crewName: replacementDisplayName };
+                        // Remove from pool so they can't be double-assigned
+                        availablePool = availablePool.filter(c => c.name !== replacement.name);
+                        alreadyAssignedNames.add(replacementDisplayName);
+                        console.log(`✅ Auto-reassign: ${approvedDisplayName} → ${replacementDisplayName} at ${shift.station} on ${dateStr}`);
+                    } else {
+                        console.log(`⚠️ Auto-reassign: No replacement found for ${shift.station} on ${dateStr}, left Unassigned`);
+                    }
+                }
+
+                scheduleChanged = true;
+            }
+
+            if (scheduleChanged) {
+                await updateDoc(doc(db, "weeklySchedules", schedDoc.id), {
+                    scheduleData: updatedScheduleData
+                });
+                console.log(`✅ Published schedule updated after approving ${approvedCrewName}'s request`);
+            }
+        }
+    } catch (e) {
+        console.error("Auto-reassign error:", e);
+        // Non-fatal: approval already succeeded, just log the error
+    }
+}
+
 window.approveRequest = async function(reqIds, crewName, startDate, endDate) {
     const dateDisplay = startDate === endDate ? startDate : `${startDate} to ${endDate}`;
     const confirmApprove = confirm(`Approve time off request for ${crewName} on ${dateDisplay}?`);
@@ -2592,7 +2853,10 @@ window.approveRequest = async function(reqIds, crewName, startDate, endDate) {
             
             await Promise.all(approvePromises);
 
-            alert(`✓ Approved! ${datesToAdd.length} day${datesToAdd.length > 1 ? 's' : ''} blocked for this crew member.`);
+            // Auto-update any published schedule that covers the approved dates
+            await reassignCrewInPublishedSchedule(crewName, datesToAdd);
+
+            alert(`✓ Approved! ${datesToAdd.length} day${datesToAdd.length > 1 ? 's' : ''} blocked. Published schedule updated automatically.`);
             loadRequests(); 
             loadCrew();     
         }

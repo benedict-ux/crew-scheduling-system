@@ -1683,7 +1683,7 @@ window.generateSchedule = async function () {
             let availableCrew = [...regularAvailableCrew];
             
             // For working students: track who had closing yesterday (for opening shift blocking)
-            const studentsWithClosingYesterday = new Set();
+            const crewWithClosingYesterday = new Set();
             if (dayIndex > 0) {
                 const previousDay = days[dayIndex - 1];
                 const previousDaySchedule = scheduleData[previousDay] || [];
@@ -1691,9 +1691,7 @@ window.generateSchedule = async function () {
                 console.log(`\n📋 Checking next-day opening restrictions for ${day} (previous: ${previousDay})`);
                 
                 availableCrew.forEach(crew => {
-                    if (crew.roleType !== "student") return; // Only applies to students
-                    
-                    // Check if this student had a closing shift yesterday
+                    // Check if this crew had a closing shift yesterday (applies to ALL crew, not just students)
                     const hadClosingYesterday = previousDaySchedule.some(shift => {
                         const crewDisplayName = crew.nickname || crew.name;
                         const shiftType = (shift.type || "").toLowerCase();
@@ -1702,11 +1700,12 @@ window.generateSchedule = async function () {
                     
                     if (hadClosingYesterday) {
                         const canOpenToday = crew.canWorkOpeningNextDay?.[day] === true;
-                        console.log(`  ${crew.name} (student) had closing ${previousDay}: canOpenToday=${canOpenToday}`);
+                        const crewType = crew.roleType === "student" ? "student" : "regular";
+                        console.log(`  ${crew.name} (${crewType}) had closing ${previousDay}: canOpenToday=${canOpenToday}`);
                         
                         if (!canOpenToday) {
                             console.log(`  ❌ ${crew.name} blocked from OPENING today - had closing yesterday and "can open next day" not checked`);
-                            studentsWithClosingYesterday.add(crew.name);
+                            crewWithClosingYesterday.add(crew.name);
                         } else {
                             console.log(`  ✅ ${crew.name} allowed to open today - "can open next day" is checked`);
                         }
@@ -1846,7 +1845,7 @@ window.generateSchedule = async function () {
                 // Helper: Check if shift preference matches (with flexibility for balance)
                 const matchesPreference = (crew, strict = true) => {
                     // Block students from opening if they had closing yesterday (unless "can open next day" is checked)
-                    if (shiftType === "opening" && studentsWithClosingYesterday.has(crew.name)) {
+                    if (shiftType === "opening" && crewWithClosingYesterday.has(crew.name)) {
                         return false;
                     }
                     

@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-title" content="JB EDKAM">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/jollibee-logo.png">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍔</text></svg>">
+    <link rel="icon" href="assets/jollibee-logo.png" type="image/png">
     <link rel="stylesheet" href="css/styles.css">
     <style>
         * {
@@ -30,13 +30,13 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #DC0000 0%, #FFC700 100%);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 10px;
             position: relative;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
         /* Animated floating circles */
@@ -181,24 +181,25 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            width: 900px;
-            max-width: 100%;
-            display: flex;
+            width: 100%;
+            max-width: 900px;
+            height: calc(100vh - 20px);
+            display: grid;
+            grid-template-columns: 45% 55%;
             z-index: 10;
-            min-height: 500px;
             margin: auto;
+            overflow: hidden;
         }
 
         .login-left {
-            flex: 1;
-            background: linear-gradient(135deg, #DC0000 0%, #B80000 100%);
+            background: #DC0000;
             padding: 40px;
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 400px;
+            border-radius: 20px 0 0 20px;
+            min-width: 300px;
         }
 
         .login-left-content {
@@ -242,11 +243,12 @@
         }
 
         .login-right {
-            flex: 1;
-            padding: 40px 50px;
+            padding: 60px 80px;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            border-radius: 0 20px 20px 0;
+            background: white;
         }
 
         .login-right h2 {
@@ -353,7 +355,7 @@
         }
 
         /* MOBILE & TABLET RESPONSIVENESS */
-        @media (max-width: 768px) {
+        @media (max-width: 600px) {
             body { 
                 padding: 10px;
                 align-items: center;
@@ -361,6 +363,7 @@
             }
             
             .login-container {
+                display: flex;
                 flex-direction: column;
                 border-radius: 15px;
                 width: 100%;
@@ -428,8 +431,8 @@
             }
         }
 
-        /* SPECIAL CASE: Landscape Phones */
-        @media (max-height: 500px) and (orientation: landscape) {
+        /* SPECIAL CASE: Landscape Phones - DISABLED to keep left panel visible */
+        @media (max-height: 400px) and (orientation: landscape) {
             body {
                 padding: 10px;
                 align-items: center;
@@ -440,10 +443,6 @@
                 flex-direction: row;
                 min-height: auto;
                 max-height: 95vh;
-            }
-            
-            .login-left { 
-                display: none;
             }
             
             .login-right {
@@ -596,8 +595,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingScreen = document.getElementById('loadingScreen');
     const loginContainer = document.querySelector('.login-container');
     
-    // Register Service Worker for caching
-    if ('serviceWorker' in navigator) {
+    // Register Service Worker for caching (skip on localhost to avoid dev caching issues)
+    if ('serviceWorker' in navigator && location.hostname !== '127.0.0.1' && location.hostname !== 'localhost') {
         navigator.serviceWorker.register('/sw.js')
             .then(function(registration) {
                 console.log('Service Worker registered successfully:', registration.scope);

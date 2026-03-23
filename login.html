@@ -359,7 +359,7 @@
         /* MOBILE & TABLET RESPONSIVENESS */
         @media (max-width: 600px) {
             body { 
-                padding: 10px;
+                padding: 8px;
                 align-items: center;
                 justify-content: center;
             }
@@ -367,65 +367,91 @@
             .login-container {
                 display: flex;
                 flex-direction: column;
-                border-radius: 15px;
+                border-radius: 0;
                 width: 100%;
                 max-width: 100%;
                 min-height: auto;
-                max-height: 90vh;
-                overflow-y: auto;
+                max-height: 100vh;
+                overflow: hidden;
+                background: #DC0000;
             }
             
             .login-left {
-                padding: 25px;
+                padding: 20px 20px;
                 flex: 0 0 auto;
                 min-height: auto;
+                border-radius: 0;
             }
             
             .login-left-content {
-                gap: 12px;
+                gap: 15px;
                 justify-content: center;
             }
             
             .login-logo {
-                width: 100px;
-                display: none;
+                width: 110px;
+                display: block;
             }
             
             .bee-icon {
-                font-size: 40px;
+                font-size: 45px;
             }
             
             .login-subtitle {
-                font-size: 13px;
+                font-size: 15px;
             }
             
             .branch {
-                font-size: 16px;
-                padding: 8px 16px;
+                font-size: 17px;
+                padding: 10px 18px;
             }
             
             .login-right {
-                padding: 25px;
+                padding: 25px 25px;
                 flex: 1;
+                overflow-y: auto;
+                border-radius: 0;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            
+            .login-right::-webkit-scrollbar {
+                display: none;
             }
             
             .login-right h2 {
-                font-size: 24px;
+                font-size: 26px;
+                margin-bottom: 10px;
             }
             
             .login-right p {
-                font-size: 12px;
-                margin-bottom: 20px;
+                font-size: 14px;
+                margin-bottom: 18px;
+            }
+            
+            .input-group {
+                margin-bottom: 14px;
+            }
+            
+            .input-group label {
+                font-size: 13px;
+                margin-bottom: 6px;
             }
             
             .input-group input {
-                padding: 11px 14px;
+                padding: 12px 14px;
                 font-size: 15px;
             }
             
             .login-btn {
-                padding: 12px;
+                padding: 13px;
                 font-size: 16px;
+                margin-top: 12px;
+            }
+            
+            .footer-text {
+                font-size: 11px;
+                margin-top: 18px;
             }
             
             .food-item { 
@@ -433,10 +459,10 @@
             }
         }
 
-        /* SPECIAL CASE: Landscape Phones - DISABLED to keep left panel visible */
-        @media (max-height: 400px) and (orientation: landscape) {
+        /* SPECIAL CASE: Landscape Phones & Tablets */
+        @media (max-height: 500px) and (orientation: landscape) {
             body {
-                padding: 10px;
+                padding: 5px;
                 align-items: center;
                 justify-content: center;
             }
@@ -444,46 +470,81 @@
             .login-container { 
                 flex-direction: row;
                 min-height: auto;
-                max-height: 95vh;
+                max-height: 100vh;
+                border-radius: 0;
+                background: white;
+            }
+            
+            .login-left {
+                padding: 15px 20px;
+                border-radius: 0;
+            }
+            
+            .login-left-content {
+                gap: 10px;
+            }
+            
+            .login-logo {
+                width: 80px;
+            }
+            
+            .bee-icon {
+                font-size: 35px;
+            }
+            
+            .login-subtitle {
+                font-size: 12px;
+            }
+            
+            .branch {
+                font-size: 13px;
+                padding: 6px 12px;
             }
             
             .login-right {
-                padding: 20px 25px;
+                padding: 15px 20px;
+                overflow-y: auto;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            
+            .login-right::-webkit-scrollbar {
+                display: none;
             }
             
             .login-right h2 {
                 font-size: 22px;
-                margin-bottom: 8px;
+                margin-bottom: 6px;
             }
             
             .login-right p {
-                font-size: 11px;
-                margin-bottom: 15px;
-            }
-            
-            .input-group {
+                font-size: 12px;
                 margin-bottom: 12px;
             }
             
+            .input-group {
+                margin-bottom: 10px;
+            }
+            
             .input-group label {
-                font-size: 12px;
-                margin-bottom: 4px;
+                font-size: 11px;
+                margin-bottom: 3px;
             }
             
             .input-group input {
-                padding: 8px 12px;
+                padding: 8px 11px;
                 font-size: 14px;
             }
             
             .login-btn {
                 padding: 10px;
                 font-size: 14px;
-                margin-top: 12px;
+                margin-top: 10px;
             }
             
             .footer-text {
                 font-size: 10px;
-                margin-top: 12px;
+                margin-top: 10px;
             }
         }
 
